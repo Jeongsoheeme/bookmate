@@ -1,0 +1,27 @@
+# FastAPI 웹 프레임워크, API 엔드포인트 정의, 요청/응답 처리, 자동 문서화
+fastapi>=0.115.0
+# Uvicorn ASGI 서버, FastAPI 애플리케이션 실행
+uvicorn[standard]>=0.32.0
+# SQLAlchemy ORM, Python 객체와 데이터베이스 테이블 간 매핑, 쿼리 작성
+sqlalchemy>=2.0.23
+# PostgreSQL 드라이버, 데이터베이스 연동, PostgreSQL 연결 및 SQL 실행
+psycopg[binary]>=3.1.0
+psycopg2-binary>=2.9.0
+# Alembic 데이터베이스 마이그레이션 도구, 스키마 변경 관리, 버전 관리
+alembic>=1.13.0
+# Pydantic 데이터 검증, 모델 정의, 데이터 유효성 검증, 데이터 변환
+pydantic>=2.10.0
+# Email 검증, EmailStr 타입 사용 시 필요
+email-validator>=2.0.0
+# Pydantic 설정 관리, 설정 파일 관리,
+pydantic-settings>=2.6.0
+# Python-JWT, JWT 토큰 생성, 검증,
+python-jose[cryptography]>=3.3.0
+# Passlib 비밀번호 해싱, 비밀번호 검증
+passlib[bcrypt]>=1.7.4
+# Python-Multipart 파일 업로드 처리
+python-multipart>=0.0.6
+# pytest 테스트 프레임워크, 테스트 실행, 테스트 결과 확인
+pytest>=8.0.0
+# httpx HTTP 클라이언트, API 테스트
+httpx>=0.27.0
