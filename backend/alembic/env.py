@@ -6,7 +6,11 @@ from sqlalchemy import pool
 from alembic import context
 
 from app.database import Base
-from app.models import User, Event, Ticket, Booking
+from app.models import (
+    User, Event, Ticket, Booking, Venue, RefreshToken,
+    EventSchedule, EventSeatGrade, EventDescriptionImage, Banner
+)
+from app.models.event import EventSubGenre
 from app.core.config import settings
 
 # this is the Alembic Config object, which provides
