@@ -21,7 +21,7 @@ const CategoryNav: React.FC<CategoryNavProps> = ({
             <button
               key={category}
               onClick={() => onCategoryChange(category)}
-              className={`py-4 px-2 font-medium text-base transition-colors relative ${
+              className={`py-4 px-2 font-medium text-base transition-colors cursor-pointer relative ${
                 selectedCategory === category
                   ? "text-blue-600"
                   : "text-gray-600 hover:text-gray-900"

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import type { Banner } from "../pages/BannerListPage";
-import type { Event } from "../services/api";
+import type { Event, EventGenre } from "../services/api";
 
 interface BannerModalProps {
   banner: Banner | null;
@@ -9,11 +9,14 @@ interface BannerModalProps {
   onSave: (bannerData: Omit<Banner, "id" | "registrationDate">) => void;
 }
 
+const genres: EventGenre[] = ["콘서트", "뮤지컬", "연극", "전시", "스포츠", "기타"];
+
 const getInitialFormData = (banner: Banner | null) => {
   if (banner) {
     return {
       order: banner.order,
       eventId: banner.eventId,
+      genre: banner.genre || null,
       link: banner.link,
       exposureStart: banner.exposureStart,
       exposureEnd: banner.exposureEnd,
@@ -22,6 +25,7 @@ const getInitialFormData = (banner: Banner | null) => {
   return {
     order: 0,
     eventId: 0,
+    genre: null,
     link: "",
     exposureStart: "",
     exposureEnd: "",
@@ -49,7 +53,12 @@ const BannerModal = ({ banner, events, onClose, onSave }: BannerModalProps) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
       ...prev,
-      [name]: name === "order" || name === "eventId" ? Number(value) : value,
+      [name]:
+        name === "order" || name === "eventId"
+          ? Number(value)
+          : name === "genre"
+          ? value || null
+          : value,
     }));
   };
 
@@ -230,6 +239,28 @@ const BannerModal = ({ banner, events, onClose, onSave }: BannerModalProps) => {
                 required
                 min="0"
               />
+            </div>
+
+            <div className="mb-5">
+              <label className="block mb-2 text-sm font-semibold text-slate-700">
+                장르
+              </label>
+              <select
+                name="genre"
+                value={formData.genre || ""}
+                onChange={handleChange}
+                className="w-full px-4 py-3 border-2 border-slate-200 rounded-lg text-sm transition-all duration-200 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10"
+              >
+                <option value="">전체 장르 (모든 탭에 표시)</option>
+                {genres.map((genre) => (
+                  <option key={genre} value={genre}>
+                    {genre}
+                  </option>
+                ))}
+              </select>
+              <p className="mt-1 text-xs text-slate-500">
+                특정 장르를 선택하면 해당 장르 탭에서만 배너가 표시됩니다. 선택하지 않으면 모든 탭에 표시됩니다.
+              </p>
             </div>
 
             <div className="mb-5">

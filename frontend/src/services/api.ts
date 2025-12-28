@@ -195,6 +195,7 @@ export interface Banner {
   id: number;
   order: number;
   event_id: number;
+  genre?: string | null;
   link: string | null;
   exposure_start: string | null;
   exposure_end: string | null;

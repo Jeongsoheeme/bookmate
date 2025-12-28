@@ -54,6 +54,7 @@ def create_banner(
     banner = Banner(
         order=banner_data.order,
         event_id=banner_data.event_id,
+        genre=banner_data.genre,
         link=banner_data.link,
         exposure_start=banner_data.exposure_start,
         exposure_end=banner_data.exposure_end,
@@ -91,6 +92,8 @@ def update_banner(
     
     if banner_data.order is not None:
         banner.order = banner_data.order
+    if banner_data.genre is not None:
+        banner.genre = banner_data.genre
     if banner_data.link is not None:
         banner.link = banner_data.link
     if banner_data.exposure_start is not None:

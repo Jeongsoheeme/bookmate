@@ -5,6 +5,7 @@ import type { Event } from "../services/api";
 
 interface ConcertBrowseProps {
   events: Event[];
+  category?: string;
 }
 
 type Genre =
@@ -38,7 +39,10 @@ const genres: Genre[] = [
   "토크/강연",
 ];
 
-const ConcertBrowse: React.FC<ConcertBrowseProps> = ({ events }) => {
+const ConcertBrowse: React.FC<ConcertBrowseProps> = ({
+  events,
+  category = "콘서트",
+}) => {
   const navigate = useNavigate();
   const [selectedGenre, setSelectedGenre] = useState<Genre>("🔥 요즘 HOT");
 
@@ -107,7 +111,7 @@ const ConcertBrowse: React.FC<ConcertBrowseProps> = ({ events }) => {
     <div className="w-full py-8">
       <div className="max-w-7xl mx-auto px-4">
         <h2 className="text-2xl font-bold text-gray-900 mb-6">
-          콘서트 둘러보기
+          {category} 둘러보기
         </h2>
         <div className="mb-8 overflow-x-auto">
           <div className="flex gap-3 pb-2">
@@ -115,7 +119,7 @@ const ConcertBrowse: React.FC<ConcertBrowseProps> = ({ events }) => {
               <button
                 key={genre}
                 onClick={() => setSelectedGenre(genre)}
-                className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all ${
+                className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all cursor-pointer ${
                   selectedGenre === genre
                     ? "bg-blue-600 text-white"
                     : "bg-gray-100 text-gray-700 hover:bg-gray-200"
@@ -128,7 +132,7 @@ const ConcertBrowse: React.FC<ConcertBrowseProps> = ({ events }) => {
         </div>
         {filteredConcerts.length === 0 ? (
           <div className="text-center py-12">
-            <p className="text-gray-500">콘서트가 없습니다</p>
+            <p className="text-gray-500">{category}가 없습니다</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">

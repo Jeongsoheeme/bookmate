@@ -9,6 +9,7 @@ export interface Banner {
   order: number;
   eventId: number;
   eventTitle?: string;
+  genre?: string | null;
   link: string;
   registrationDate: string;
   exposureStart: string;
@@ -38,6 +39,7 @@ const BannerListPage = () => {
           order: banner.order,
           eventId: banner.event_id,
           eventTitle: banner.event?.title,
+          genre: banner.genre || null,
           link: banner.link || "",
           registrationDate: new Date(banner.created_at)
             .toLocaleString("ko-KR", {
@@ -140,6 +142,7 @@ const BannerListPage = () => {
       const apiData = {
         order: bannerData.order,
         event_id: bannerData.eventId,
+        genre: bannerData.genre || null,
         link: bannerData.link || null,
         exposure_start: bannerData.exposureStart
           ? new Date(bannerData.exposureStart).toISOString()
@@ -164,6 +167,7 @@ const BannerListPage = () => {
                   eventId: updatedBanner.event_id,
                   eventTitle:
                     updatedBanner.event?.title || selectedEvent?.title,
+                  genre: updatedBanner.genre || null,
                   link: updatedBanner.link || "",
                   registrationDate: editingBanner.registrationDate,
                   exposureStart: updatedBanner.exposure_start
@@ -188,6 +192,7 @@ const BannerListPage = () => {
           order: newBanner.order,
           eventId: newBanner.event_id,
           eventTitle: newBanner.event?.title || selectedEvent?.title,
+          genre: newBanner.genre || null,
           link: newBanner.link || "",
           registrationDate: new Date(newBanner.created_at)
             .toLocaleString("ko-KR", {

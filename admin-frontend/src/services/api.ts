@@ -348,6 +348,7 @@ export interface BannerResponse {
   id: number;
   order: number;
   event_id: number;
+  genre?: EventGenre | null;
   link: string | null;
   exposure_start: string | null;
   exposure_end: string | null;
@@ -359,6 +360,7 @@ export interface BannerResponse {
 export interface BannerCreate {
   order: number;
   event_id: number;
+  genre?: EventGenre | null;
   link?: string | null;
   exposure_start?: string | null;
   exposure_end?: string | null;
@@ -367,6 +369,7 @@ export interface BannerCreate {
 export interface BannerUpdate {
   order?: number;
   event_id?: number;
+  genre?: EventGenre | null;
   link?: string | null;
   exposure_start?: string | null;
   exposure_end?: string | null;

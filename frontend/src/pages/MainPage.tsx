@@ -35,8 +35,18 @@ const MainPage: React.FC = () => {
     fetchData();
   }, []);
 
+  // 선택한 카테고리에 맞는 이벤트 필터링
+  const filteredEvents = events.filter(
+    (event) => event.genre === selectedCategory
+  );
+
+  // 선택한 카테고리에 맞는 배너 필터링 (genre가 null이면 모든 탭에 표시)
+  const filteredBanners = banners.filter(
+    (banner) => !banner.genre || banner.genre === selectedCategory
+  );
+
   // 배너 데이터를 BannerCarousel 형식으로 변환
-  const bannerItems = banners.map((banner) => {
+  const bannerItems = filteredBanners.map((banner) => {
     const event = banner.event;
     const schedule = event?.schedules?.[0];
     let dateStr = "";
@@ -85,7 +95,7 @@ const MainPage: React.FC = () => {
         onCategoryChange={setSelectedCategory}
       />
       {!loading && <BannerCarousel items={bannerItems} />}
-      <ConcertBrowse events={events} />
+      <ConcertBrowse events={filteredEvents} category={selectedCategory} />
     </div>
   );
 };

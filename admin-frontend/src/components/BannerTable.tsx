@@ -57,6 +57,9 @@ const BannerTable = ({
               공연 콘텐츠
             </th>
             <th className="py-4 px-3 text-left text-[13px] font-bold text-slate-600 uppercase tracking-wide">
+              장르
+            </th>
+            <th className="py-4 px-3 text-left text-[13px] font-bold text-slate-600 uppercase tracking-wide">
               링크
             </th>
             <th className="py-4 px-3 text-left text-[13px] font-bold text-slate-600 uppercase tracking-wide">
@@ -73,7 +76,7 @@ const BannerTable = ({
         <tbody>
           {banners.length === 0 ? (
             <tr>
-              <td colSpan={7} className="p-10 text-center text-slate-500">
+              <td colSpan={8} className="p-10 text-center text-slate-500">
                 등록된 배너가 없습니다.
               </td>
             </tr>
@@ -139,6 +142,17 @@ const BannerTable = ({
                       </span>
                     );
                   })()}
+                </td>
+                <td className="py-4 px-3">
+                  {banner.genre ? (
+                    <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded-md text-xs font-medium">
+                      {banner.genre}
+                    </span>
+                  ) : (
+                    <span className="px-2 py-1 bg-gray-100 text-gray-500 rounded-md text-xs font-medium">
+                      전체
+                    </span>
+                  )}
                 </td>
                 <td className="py-4 px-3 text-sm text-blue-500 font-medium">
                   {banner.link}

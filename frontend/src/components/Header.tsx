@@ -66,7 +66,9 @@ const Header: React.FC = () => {
                 onClick={() => navigate("/")}
               >
                 <img src={logoImage} alt="Bookmate Logo" className="h-8 w-8" />
-                <span className="text-xl font-bold text-gray-900">Bookmate</span>
+                <span className="text-xl font-bold text-gray-900">
+                  Bookmate
+                </span>
               </div>
               <div className="flex-1 max-w-md">
                 <div className="relative">
@@ -98,7 +100,7 @@ const Header: React.FC = () => {
                 <button
                   ref={buttonRef}
                   onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                  className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                  className="p-2 hover:bg-gray-100 rounded-full transition-colors cursor-pointer"
                 >
                   <div className="h-8 w-8 rounded-full bg-gray-300 flex items-center justify-center">
                     <svg
@@ -145,7 +147,7 @@ const Header: React.FC = () => {
                     {/* 마이페이지 메뉴 */}
                     <button
                       onClick={handleMyPageClick}
-                      className="w-full px-4 py-3 text-left hover:bg-gray-50 transition-colors flex items-center justify-between"
+                      className="w-full px-4 py-3 text-left hover:bg-gray-50 transition-colors flex items-center justify-between cursor-pointer"
                     >
                       <span className="text-sm text-gray-900">마이페이지</span>
                       <svg
