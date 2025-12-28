@@ -15,6 +15,7 @@ class Booking(Base):
   id = Column(Integer, primary_key=True, index=True)
   user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
   ticket_id = Column(Integer, ForeignKey("tickets.id"), nullable=False)
+  schedule_id = Column(Integer, ForeignKey("event_schedules.id"), nullable=True, index=True)  # 회차별 관리
   
   status = Column(Enum(BookingStatus), default=BookingStatus.PENDING)
   total_price = Column(Float, nullable=False)
@@ -26,4 +27,5 @@ class Booking(Base):
   
   user = relationship("User", backref="bookings")
   ticket = relationship("Ticket", backref="bookings")
+  schedule = relationship("EventSchedule", backref="bookings")
   

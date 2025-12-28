@@ -27,8 +27,11 @@ const EventDetailPage: React.FC = () => {
         // 첫 번째 스케줄을 기본 선택
         if (eventData.schedules && eventData.schedules.length > 0) {
           const firstSchedule = eventData.schedules[0];
-          setSelectedDate(new Date(firstSchedule.start_datetime));
+          const firstScheduleDate = new Date(firstSchedule.start_datetime);
+          setSelectedDate(firstScheduleDate);
           setSelectedSchedule(firstSchedule);
+          // 달력을 첫 번째 회차 날짜로 설정
+          setMonth(firstScheduleDate);
         }
       } catch (error) {
         console.error("이벤트 정보를 가져오는 중 오류가 발생했습니다:", error);

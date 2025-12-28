@@ -34,20 +34,40 @@ def get_event_tickets(
     db: Session = Depends(get_db)
 ):
     """이벤트의 티켓 목록 조회 (인증 불필요)
+    schedule_id가 제공되면 해당 회차의 티켓만 조회
     tickets 테이블에 데이터가 없으면 event_seat_grades를 기반으로 좌석을 생성"""
     # 이벤트와 venue 정보 확인
     event = db.query(Event).options(joinedload(Event.venue)).filter(Event.id == event_id).first()
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
     
-    # tickets 테이블에서 좌석 조회
-    tickets = db.query(Ticket).filter(Ticket.event_id == event_id).all()
+    # schedule_id가 제공된 경우 해당 스케줄 확인
+    if schedule_id:
+        schedule = db.query(EventSchedule).filter(
+            EventSchedule.id == schedule_id,
+            EventSchedule.event_id == event_id
+        ).first()
+        if not schedule:
+            raise HTTPException(status_code=404, detail="Schedule not found for this event")
+    
+    # tickets 테이블에서 좌석 조회 (schedule_id 필터링)
+    ticket_query = db.query(Ticket).filter(Ticket.event_id == event_id)
+    if schedule_id:
+        ticket_query = ticket_query.filter(Ticket.schedule_id == schedule_id)
+    tickets = ticket_query.all()
     
     # tickets가 없으면 event_seat_grades를 기반으로 좌석 생성
     if not tickets:
-        seat_grades = db.query(EventSeatGrade).filter(
+        seat_grade_query = db.query(EventSeatGrade).filter(
             EventSeatGrade.event_id == event_id
-        ).all()
+        )
+        if schedule_id:
+            # schedule_id가 있으면 해당 회차의 좌석 등급만 조회
+            # schedule_id가 null인 경우도 포함 (회차별로 지정되지 않은 경우)
+            seat_grade_query = seat_grade_query.filter(
+                (EventSeatGrade.schedule_id == schedule_id) | (EventSeatGrade.schedule_id.is_(None))
+            )
+        seat_grades = seat_grade_query.all()
         
         if not seat_grades:
             return []
@@ -108,15 +128,20 @@ def get_event_tickets(
     # tickets 테이블에 데이터가 있는 경우
     # 실제 티켓을 기준으로 각 행의 좌석 범위를 파악하고, event_seat_grades를 참고하여 누락된 좌석 보완
     
-    # 예약된 티켓 ID 확인
+    # 예약된 티켓 ID 확인 (schedule_id 필터링)
     booked_ticket_ids = set()
     if tickets:
         ticket_ids = [t.id for t in tickets if t.id is not None]
         if ticket_ids:
-            bookings = db.query(Booking).filter(
+            booking_query = db.query(Booking).filter(
                 Booking.ticket_id.in_(ticket_ids),
                 Booking.status.in_([BookingStatus.CONFIRMED, BookingStatus.PENDING])
-            ).all()
+            )
+            if schedule_id:
+                booking_query = booking_query.filter(
+                    (Booking.schedule_id == schedule_id) | (Booking.schedule_id.is_(None))
+                )
+            bookings = booking_query.all()
             booked_ticket_ids = {booking.ticket_id for booking in bookings}
     
     # 실제 티켓을 딕셔너리로 변환 (row, number로 조회)
@@ -143,10 +168,15 @@ def get_event_tickets(
                     'section': ticket.seat_section
                 }
     
-    # event_seat_grades 조회 (누락된 행 정보 보완용)
-    seat_grades = db.query(EventSeatGrade).filter(
+    # event_seat_grades 조회 (누락된 행 정보 보완용, schedule_id 필터링)
+    seat_grade_query = db.query(EventSeatGrade).filter(
         EventSeatGrade.event_id == event_id
-    ).all()
+    )
+    if schedule_id:
+        seat_grade_query = seat_grade_query.filter(
+            (EventSeatGrade.schedule_id == schedule_id) | (EventSeatGrade.schedule_id.is_(None))
+        )
+    seat_grades = seat_grade_query.all()
     
     # seat_grades를 딕셔너리로 변환
     seat_grades_dict = {}
@@ -292,13 +322,25 @@ def create_bookings(
     created_bookings = []
     
     try:
+        # schedule_id가 제공된 경우 해당 스케줄 확인
+        if request.schedule_id:
+            schedule = db.query(EventSchedule).filter(
+                EventSchedule.id == request.schedule_id,
+                EventSchedule.event_id == request.event_id
+            ).first()
+            if not schedule:
+                raise HTTPException(status_code=404, detail="Schedule not found for this event")
+        
         for seat_info in request.seats:
-            # 티켓이 이미 존재하는지 확인 (row, number, event_id로)
-            existing_ticket = db.query(Ticket).filter(
+            # 티켓이 이미 존재하는지 확인 (row, number, event_id, schedule_id로)
+            ticket_query = db.query(Ticket).filter(
                 Ticket.event_id == request.event_id,
                 Ticket.seat_row == seat_info.row,
                 Ticket.seat_number == seat_info.number
-            ).first()
+            )
+            if request.schedule_id:
+                ticket_query = ticket_query.filter(Ticket.schedule_id == request.schedule_id)
+            existing_ticket = ticket_query.first()
             
             ticket = existing_ticket
             
@@ -315,6 +357,7 @@ def create_bookings(
                 
                 ticket = Ticket(
                     event_id=request.event_id,
+                    schedule_id=request.schedule_id,
                     seat_section=seat_info.seat_section,
                     seat_row=seat_info.row,
                     seat_number=seat_info.number,
@@ -324,11 +367,16 @@ def create_bookings(
                 db.add(ticket)
                 db.flush()  # ID를 얻기 위해 flush
             
-            # 이미 예약된 티켓인지 확인
-            existing_booking = db.query(Booking).filter(
+            # 이미 예약된 티켓인지 확인 (schedule_id 필터링)
+            booking_query = db.query(Booking).filter(
                 Booking.ticket_id == ticket.id,
                 Booking.status.in_([BookingStatus.CONFIRMED, BookingStatus.PENDING])
-            ).first()
+            )
+            if request.schedule_id:
+                booking_query = booking_query.filter(
+                    (Booking.schedule_id == request.schedule_id) | (Booking.schedule_id.is_(None))
+                )
+            existing_booking = booking_query.first()
             
             if existing_booking:
                 raise HTTPException(
@@ -340,6 +388,7 @@ def create_bookings(
             booking = Booking(
                 user_id=current_user.id,
                 ticket_id=ticket.id,
+                schedule_id=request.schedule_id,
                 status=BookingStatus.PENDING,
                 total_price=seat_info.price,
                 payment_method=None,

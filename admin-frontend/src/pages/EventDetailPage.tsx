@@ -4,7 +4,6 @@ import {
   adminEventsApi,
   venuesApi,
   type Venue,
-  type Event,
   type EventCreate,
   type EventScheduleCreate,
   type EventSeatGradeCreate,
@@ -173,7 +172,10 @@ const EventDetailPage = () => {
           setRowPrices(initialRowPrices);
         }
       } catch (error) {
-        console.error("이벤트 데이터를 가져오는 중 오류가 발생했습니다:", error);
+        console.error(
+          "이벤트 데이터를 가져오는 중 오류가 발생했습니다:",
+          error
+        );
         alert("이벤트 데이터를 불러오는 중 오류가 발생했습니다.");
         navigate("/admin/event/list");
       } finally {
@@ -392,15 +394,13 @@ const EventDetailPage = () => {
       alert("공연이 성공적으로 수정되었습니다.");
       setIsEditMode(false);
       // 데이터 다시 로드
-      const eventDataUpdated = await adminEventsApi.getById(
-        parseInt(eventId!)
-      );
+      const eventDataUpdated = await adminEventsApi.getById(parseInt(eventId!));
       // 포스터 이미지 URL 업데이트
       if (eventDataUpdated.poster_image) {
         setPosterImageUrl(
-          `${
-            import.meta.env.VITE_API_URL || "http://localhost:8000"
-          }/uploads/${eventDataUpdated.poster_image}`
+          `${import.meta.env.VITE_API_URL || "http://localhost:8000"}/uploads/${
+            eventDataUpdated.poster_image
+          }`
         );
       }
       setPosterImage(null);
@@ -428,9 +428,7 @@ const EventDetailPage = () => {
   // 취소 버튼 클릭
   const handleCancel = () => {
     if (isEditMode) {
-      if (
-        window.confirm("수정 중인 내용이 사라집니다. 취소하시겠습니까?")
-      ) {
+      if (window.confirm("수정 중인 내용이 사라집니다. 취소하시겠습니까?")) {
         setIsEditMode(false);
         // 데이터 다시 로드
         window.location.reload();
@@ -570,7 +568,9 @@ const EventDetailPage = () => {
                   </select>
                 ) : (
                   <div className="p-4 border border-gray-200 rounded-lg bg-gray-50">
-                    <span className="text-sm text-gray-700">{genre || "미설정"}</span>
+                    <span className="text-sm text-gray-700">
+                      {genre || "미설정"}
+                    </span>
                   </div>
                 )}
               </div>
@@ -582,7 +582,9 @@ const EventDetailPage = () => {
                 {isEditMode ? (
                   <select
                     value={subGenre}
-                    onChange={(e) => setSubGenre(e.target.value as EventSubGenre)}
+                    onChange={(e) =>
+                      setSubGenre(e.target.value as EventSubGenre)
+                    }
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   >
                     <option value="">선택해주세요</option>
@@ -594,7 +596,9 @@ const EventDetailPage = () => {
                   </select>
                 ) : (
                   <div className="p-4 border border-gray-200 rounded-lg bg-gray-50">
-                    <span className="text-sm text-gray-700">{subGenre || "미설정"}</span>
+                    <span className="text-sm text-gray-700">
+                      {subGenre || "미설정"}
+                    </span>
                   </div>
                 )}
               </div>
@@ -611,7 +615,9 @@ const EventDetailPage = () => {
                       onChange={(e) => setIsHot(e.target.checked)}
                       className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
                     />
-                    <span className="text-sm text-gray-700">HOT 공연으로 표시</span>
+                    <span className="text-sm text-gray-700">
+                      HOT 공연으로 표시
+                    </span>
                   </label>
                 ) : (
                   <div className="p-4 border border-gray-200 rounded-lg bg-gray-50">
@@ -721,7 +727,9 @@ const EventDetailPage = () => {
                           handleScheduleChange(
                             index,
                             "running_time",
-                            e.target.value ? parseInt(e.target.value) : undefined
+                            e.target.value
+                              ? parseInt(e.target.value)
+                              : undefined
                           )
                         }
                         className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -884,7 +892,9 @@ const EventDetailPage = () => {
                       }
                       className="mr-2"
                     />
-                    <span className="text-sm text-gray-700">{option.label}</span>
+                    <span className="text-sm text-gray-700">
+                      {option.label}
+                    </span>
                   </label>
                 ))}
               </div>
@@ -1156,7 +1166,9 @@ const EventDetailPage = () => {
         {/* 오른쪽 사이드바 - 설명 */}
         {isEditMode && (
           <div className="w-80 bg-white p-6 rounded-xl shadow-sm h-fit sticky top-8">
-            <h3 className="text-lg font-bold text-gray-800 mb-4">사용 가이드</h3>
+            <h3 className="text-lg font-bold text-gray-800 mb-4">
+              사용 가이드
+            </h3>
 
             <div className="space-y-6">
               <div>
@@ -1170,7 +1182,9 @@ const EventDetailPage = () => {
               </div>
 
               <div>
-                <h4 className="font-semibold text-gray-700 mb-2">2. 공연 일시</h4>
+                <h4 className="font-semibold text-gray-700 mb-2">
+                  2. 공연 일시
+                </h4>
                 <p className="text-sm text-gray-600">
                   공연 일시를 여러 개 추가할 수 있습니다. 각 일시마다 시작일시와
                   러닝타임을 입력합니다.
@@ -1182,7 +1196,8 @@ const EventDetailPage = () => {
                   3. 좌석 등급 및 가격
                 </h4>
                 <p className="text-sm text-gray-600">
-                  좌석배치도를 확인하고, 각 행별로 좌석 등급과 가격을 지정합니다.
+                  좌석배치도를 확인하고, 각 행별로 좌석 등급과 가격을
+                  지정합니다.
                 </p>
               </div>
             </div>
@@ -1249,4 +1264,3 @@ const EventDetailPage = () => {
 };
 
 export default EventDetailPage;
-

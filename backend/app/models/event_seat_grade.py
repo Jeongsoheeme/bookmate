@@ -13,10 +13,12 @@ class EventSeatGrade(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     event_id = Column(Integer, ForeignKey("events.id"), nullable=False)
+    schedule_id = Column(Integer, ForeignKey("event_schedules.id"), nullable=True, index=True)  # 회차별 관리
     row = Column(String, nullable=False)  # 행 (예: "A", "B", "C")
     grade = Column(Enum(TicketGrade), nullable=False)  # 좌석 등급
     price = Column(Float, nullable=False)  # 가격
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     event = relationship("Event", back_populates="seat_grades")
+    schedule = relationship("EventSchedule", backref="seat_grades")
 

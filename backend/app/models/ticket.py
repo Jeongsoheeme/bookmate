@@ -15,6 +15,7 @@ class Ticket(Base):
 
   id = Column(Integer, primary_key=True, index=True)
   event_id = Column(Integer, ForeignKey("events.id"), nullable=False)
+  schedule_id = Column(Integer, ForeignKey("event_schedules.id"), nullable=True, index=True)  # 회차별 관리
   seat_section = Column(String)
   seat_row = Column(String)
   seat_number = Column(Integer)
@@ -23,3 +24,4 @@ class Ticket(Base):
   price = Column(Float, nullable=False)
 
   event = relationship("Event", backref="tickets")
+  schedule = relationship("EventSchedule", backref="tickets")
