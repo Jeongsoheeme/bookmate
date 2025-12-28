@@ -12,6 +12,14 @@ class User(Base):
   hashed_password = Column(String, nullable=False)
   is_active = Column(Boolean, default=True)
   is_admin = Column(Boolean, default=False)
+  # 연락처 정보
+  phone1 = Column(String, nullable=True)  # 010
+  phone2 = Column(String, nullable=True)  # 중간 번호
+  phone3 = Column(String, nullable=True)  # 마지막 번호
+  # 배송지 정보
+  postal_code = Column(String, nullable=True)
+  address = Column(String, nullable=True)
+  detail_address = Column(String, nullable=True)
   created_at = Column(DateTime(timezone=True), server_default=func.now())
   updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 

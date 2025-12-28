@@ -68,6 +68,7 @@ const MainPage: React.FC = () => {
 
     return {
       id: banner.id,
+      eventId: event?.id,
       title: event?.title || "",
       venue: event?.location || "",
       date: dateStr,

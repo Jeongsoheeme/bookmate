@@ -17,10 +17,25 @@ class UserResponse(BaseModel):
   username: str
   is_active: bool
   is_admin: bool
+  phone1: Optional[str] = None
+  phone2: Optional[str] = None
+  phone3: Optional[str] = None
+  postal_code: Optional[str] = None
+  address: Optional[str] = None
+  detail_address: Optional[str] = None
   created_at: datetime
 
   class Config:
     from_attributes = True
+
+class UserUpdate(BaseModel):
+  username: Optional[str] = None
+  phone1: Optional[str] = None
+  phone2: Optional[str] = None
+  phone3: Optional[str] = None
+  postal_code: Optional[str] = None
+  address: Optional[str] = None
+  detail_address: Optional[str] = None
 
 class Token(BaseModel):
   access_token: str

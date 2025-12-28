@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { getImageUrl } from "../services/api";
 import type { Event } from "../services/api";
 
@@ -38,6 +39,7 @@ const genres: Genre[] = [
 ];
 
 const ConcertBrowse: React.FC<ConcertBrowseProps> = ({ events }) => {
+  const navigate = useNavigate();
   const [selectedGenre, setSelectedGenre] = useState<Genre>("🔥 요즘 HOT");
 
   // 이벤트 데이터를 콘서트 형식으로 변환하고 필터링
@@ -133,6 +135,7 @@ const ConcertBrowse: React.FC<ConcertBrowseProps> = ({ events }) => {
             {filteredConcerts.map((concert) => (
               <div
                 key={concert.id}
+                onClick={() => navigate(`/event/${concert.id}`)}
                 className="bg-white rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow cursor-pointer group"
               >
                 <div className="w-full aspect-[3/4] bg-gray-200 relative overflow-hidden">

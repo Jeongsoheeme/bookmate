@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 
 interface BannerItem {
   id: number;
+  eventId?: number;
   title: string;
   venue: string;
   date: string;
@@ -16,6 +18,7 @@ interface BannerCarouselProps {
 const ITEMS_PER_PAGE = 4;
 
 const BannerCarousel: React.FC<BannerCarouselProps> = ({ items }) => {
+  const navigate = useNavigate();
   const [currentPage, setCurrentPage] = useState(0);
 
   const totalPages = Math.ceil(items.length / ITEMS_PER_PAGE);
@@ -76,7 +79,10 @@ const BannerCarousel: React.FC<BannerCarouselProps> = ({ items }) => {
                         }rem) / ${ITEMS_PER_PAGE})`,
                       }}
                       onClick={() => {
-                        if (item.link) {
+                        // eventId가 있으면 상세 페이지로 이동
+                        if (item.eventId) {
+                          navigate(`/event/${item.eventId}`);
+                        } else if (item.link) {
                           if (item.link.startsWith("http")) {
                             window.open(item.link, "_blank");
                           } else if (item.link.startsWith("#")) {

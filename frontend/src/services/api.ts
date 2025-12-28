@@ -86,6 +86,23 @@ export interface EventSchedule {
   created_at: string;
 }
 
+export interface EventSeatGrade {
+  id: number;
+  event_id: number;
+  row: string;
+  grade: string;
+  price: number;
+  created_at: string;
+}
+
+export interface EventDescriptionImage {
+  id: number;
+  event_id: number;
+  image_path: string;
+  order: number;
+  created_at: string;
+}
+
 export type EventSubGenre =
   | "발라드"
   | "락/메탈"
@@ -110,6 +127,36 @@ export interface Event {
   sub_genre?: EventSubGenre;
   is_hot?: number;
   schedules?: EventSchedule[];
+  seat_grades?: EventSeatGrade[];
+  description_images?: EventDescriptionImage[];
+  ticket_receipt_method?: string;
+  sales_open_date?: string;
+  sales_end_date?: string;
+}
+
+export interface User {
+  id: number;
+  email: string;
+  username: string;
+  is_active: boolean;
+  is_admin: boolean;
+  phone1?: string | null;
+  phone2?: string | null;
+  phone3?: string | null;
+  postal_code?: string | null;
+  address?: string | null;
+  detail_address?: string | null;
+  created_at: string;
+}
+
+export interface UserUpdate {
+  username?: string;
+  phone1?: string;
+  phone2?: string;
+  phone3?: string;
+  postal_code?: string;
+  address?: string;
+  detail_address?: string;
 }
 
 export const authApi = {
@@ -122,12 +169,24 @@ export const authApi = {
   logout: (refreshToken: string) =>
     apiClient.post("/auth/logout", { refresh_token: refreshToken }),
 
-  getMe: () => apiClient.get("/auth/me"),
+  getMe: async (): Promise<User> => {
+    const response = await apiClient.get<User>("/auth/me");
+    return response.data;
+  },
+
+  updateMe: async (data: UserUpdate): Promise<User> => {
+    const response = await apiClient.put<User>("/auth/me", data);
+    return response.data;
+  },
 };
 
 export const eventsApi = {
   getAll: async (): Promise<Event[]> => {
     const response = await apiClient.get<Event[]>("/events/");
+    return response.data;
+  },
+  getById: async (eventId: number): Promise<Event> => {
+    const response = await apiClient.get<Event>(`/events/${eventId}`);
     return response.data;
   },
 };
@@ -147,6 +206,96 @@ export interface Banner {
 export const bannersApi = {
   getAll: async (): Promise<Banner[]> => {
     const response = await apiClient.get<Banner[]>("/banners/");
+    return response.data;
+  },
+};
+
+export interface Ticket {
+  id: number | null;
+  event_id: number;
+  seat_section: string | null;
+  seat_row: string | null;
+  seat_number: number | null;
+  grade: string;
+  price: number;
+  available: boolean;
+}
+
+export const ticketsApi = {
+  getByEventId: async (
+    eventId: number,
+    scheduleId?: number
+  ): Promise<Ticket[]> => {
+    const params = scheduleId ? { schedule_id: scheduleId } : {};
+    const response = await apiClient.get<Ticket[]>(
+      `/events/${eventId}/tickets`,
+      { params }
+    );
+    return response.data;
+  },
+};
+
+export interface Booking {
+  id: number;
+  user_id: number;
+  ticket_id: number;
+  status: string;
+  total_price: number;
+  booked_at: string;
+}
+
+export interface UserBooking {
+  id: number;
+  booking_id: number;
+  event_id: number;
+  event_title: string;
+  event_poster_image?: string | null;
+  venue_name?: string | null;
+  schedule_date?: string | null;
+  schedule_time?: string | null;
+  seat_row?: string | null;
+  seat_number?: number | null;
+  grade: string;
+  price: number;
+  status: string;
+  booked_at: string;
+  reservation_number: string;
+  quantity: number;
+}
+
+export interface SeatInfo {
+  row: string;
+  number: number;
+  grade: string;
+  price: number;
+  seat_section?: string | null;
+}
+
+export interface CreateBookingRequest {
+  event_id: number;
+  schedule_id?: number | null;
+  seats: SeatInfo[];
+  total_price: number;
+  receipt_method: string;
+  delivery_info?: {
+    name: string;
+    phone1: string;
+    phone2: string;
+    phone3: string;
+    email: string;
+    address?: string;
+    detailAddress?: string;
+    postalCode?: string;
+  } | null;
+}
+
+export const bookingsApi = {
+  create: async (data: CreateBookingRequest): Promise<Booking[]> => {
+    const response = await apiClient.post<Booking[]>("/bookings", data);
+    return response.data;
+  },
+  getMyBookings: async (): Promise<UserBooking[]> => {
+    const response = await apiClient.get<UserBooking[]>("/bookings/my");
     return response.data;
   },
 };

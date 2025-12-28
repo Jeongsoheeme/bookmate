@@ -1,16 +1,22 @@
 import React from "react";
+import { useNavigate } from "react-router-dom";
 import logoImage from "../assets/logo.png";
 import magnifierImage from "../assets/magnifier.png";
 import messagesImage from "../assets/messages.png";
 import notificationImage from "../assets/notification-status.png";
 
 const Header: React.FC = () => {
+  const navigate = useNavigate();
+
   return (
     <header className="w-full bg-white">
       <div className="max-w-7xl mx-auto py-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-6 flex-1">
-            <div className="flex items-center gap-2">
+            <div
+              className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity"
+              onClick={() => navigate("/")}
+            >
               <img src={logoImage} alt="Bookmate Logo" className="h-8 w-8" />
               <span className="text-xl font-bold text-gray-900">Bookmate</span>
             </div>
@@ -40,7 +46,10 @@ const Header: React.FC = () => {
                 className="h-6 w-6"
               />
             </button>
-            <button className="p-2 hover:bg-gray-100 rounded-full transition-colors">
+            <button
+              onClick={() => navigate("/mypage/main")}
+              className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+            >
               <div className="h-8 w-8 rounded-full bg-gray-300 flex items-center justify-center">
                 <svg
                   className="h-5 w-5 text-gray-600"
