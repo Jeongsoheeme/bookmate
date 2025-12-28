@@ -41,7 +41,6 @@ const MyPageMain: React.FC = () => {
 
   // 예매 내역 개수 계산
   const reservationCount = Object.keys(groupedBookings).length;
-  const ticketCount = bookings.length;
 
   if (loading) {
     return (
