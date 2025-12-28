@@ -108,13 +108,7 @@ export interface User {
   created_at: string;
 }
 
-export type EventGenre =
-  | "뮤지컬"
-  | "연극"
-  | "콘서트"
-  | "전시"
-  | "스포츠"
-  | "기타";
+export type EventGenre = "뮤지컬" | "연극" | "콘서트";
 export type EventSubGenre =
   | "발라드"
   | "락/메탈"

@@ -24,14 +24,14 @@ def upgrade() -> None:
     # EventGenre enum 타입 생성 (이미 존재할 수 있으므로 IF NOT EXISTS 사용)
     op.execute("""
         DO $$ BEGIN
-            CREATE TYPE eventgenre AS ENUM ('뮤지컬', '연극', '콘서트', '전시', '스포츠', '기타');
+            CREATE TYPE eventgenre AS ENUM ('뮤지컬', '연극', '콘서트');
         EXCEPTION
             WHEN duplicate_object THEN null;
         END $$;
     """)
     
     # banners 테이블에 genre 컬럼 추가
-    op.add_column('banners', sa.Column('genre', postgresql.ENUM('뮤지컬', '연극', '콘서트', '전시', '스포츠', '기타', name='eventgenre'), nullable=True))
+    op.add_column('banners', sa.Column('genre', postgresql.ENUM('뮤지컬', '연극', '콘서트', name='eventgenre'), nullable=True))
 
 
 def downgrade() -> None:

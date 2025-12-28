@@ -9,7 +9,7 @@ interface BannerModalProps {
   onSave: (bannerData: Omit<Banner, "id" | "registrationDate">) => void;
 }
 
-const genres: EventGenre[] = ["콘서트", "뮤지컬", "연극", "전시", "스포츠", "기타"];
+const genres: EventGenre[] = ["콘서트", "뮤지컬", "연극"];
 
 const getInitialFormData = (banner: Banner | null) => {
   if (banner) {
@@ -259,7 +259,8 @@ const BannerModal = ({ banner, events, onClose, onSave }: BannerModalProps) => {
                 ))}
               </select>
               <p className="mt-1 text-xs text-slate-500">
-                특정 장르를 선택하면 해당 장르 탭에서만 배너가 표시됩니다. 선택하지 않으면 모든 탭에 표시됩니다.
+                특정 장르를 선택하면 해당 장르 탭에서만 배너가 표시됩니다.
+                선택하지 않으면 모든 탭에 표시됩니다.
               </p>
             </div>
 

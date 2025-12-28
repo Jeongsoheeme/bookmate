@@ -8,9 +8,6 @@ class EventGenre(str, enum.Enum):
     MUSICAL = "뮤지컬"
     THEATER = "연극"
     CONCERT = "콘서트"
-    EXHIBITION = "전시"
-    SPORTS = "스포츠"
-    ETC = "기타"
 
 class EventSubGenre(str, enum.Enum):
     BALLAD = "발라드"

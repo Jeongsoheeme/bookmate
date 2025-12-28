@@ -316,14 +316,7 @@ const EventRegistrationPage = () => {
     return result;
   }, [selectedVenue]);
 
-  const genreOptions: EventGenre[] = [
-    "뮤지컬",
-    "연극",
-    "콘서트",
-    "전시",
-    "스포츠",
-    "기타",
-  ];
+  const genreOptions: EventGenre[] = ["뮤지컬", "연극", "콘서트"];
   const subGenreOptions: EventSubGenre[] = [
     "발라드",
     "락/메탈",
