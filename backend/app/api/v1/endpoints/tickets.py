@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session, joinedload
+from sqlalchemy import select
 from typing import List, Optional
 from app.database import get_db
 from app.models.ticket import Ticket, TicketGrade
@@ -10,6 +11,7 @@ from app.models.event_seat_grade import EventSeatGrade
 from app.models.venue import Venue
 from app.core.dependencies import get_current_user
 from app.models.user import User
+from app.services.redis_service import redis_service
 from pydantic import BaseModel
 
 router = APIRouter()
@@ -313,24 +315,32 @@ def create_bookings(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """선택한 좌석에 대해 티켓을 생성하고 booking을 생성"""
+    """
+    선택한 좌석에 대해 티켓을 생성하고 booking을 생성
+    고트래픽 환경을 위한 다층 방어 전략:
+    1. Redis 분산 LOCK (빠른 차단)
+    2. DB 레벨 LOCK (최종 보장)
+    3. 트랜잭션으로 원자성 보장
+    """
     # 이벤트 확인
     event = db.query(Event).filter(Event.id == request.event_id).first()
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
     
+    # schedule_id가 제공된 경우 해당 스케줄 확인
+    if request.schedule_id:
+        schedule = db.query(EventSchedule).filter(
+            EventSchedule.id == request.schedule_id,
+            EventSchedule.event_id == request.event_id
+        ).first()
+        if not schedule:
+            raise HTTPException(status_code=404, detail="Schedule not found for this event")
+    
     created_bookings = []
+    locked_tickets = []  # LOCK 획득한 티켓 ID 추적
     
     try:
-        # schedule_id가 제공된 경우 해당 스케줄 확인
-        if request.schedule_id:
-            schedule = db.query(EventSchedule).filter(
-                EventSchedule.id == request.schedule_id,
-                EventSchedule.event_id == request.event_id
-            ).first()
-            if not schedule:
-                raise HTTPException(status_code=404, detail="Schedule not found for this event")
-        
+        # 1단계: 모든 좌석에 대해 Redis LOCK 시도
         for seat_info in request.seats:
             # 티켓이 이미 존재하는지 확인 (row, number, event_id, schedule_id로)
             ticket_query = db.query(Ticket).filter(
@@ -342,7 +352,39 @@ def create_bookings(
                 ticket_query = ticket_query.filter(Ticket.schedule_id == request.schedule_id)
             existing_ticket = ticket_query.first()
             
-            ticket = existing_ticket
+            # 티켓이 없으면 임시 ID 생성 (나중에 실제 생성)
+            if existing_ticket:
+                ticket_id = existing_ticket.id
+            else:
+                # 임시 ID: 음수로 구분 (실제 DB ID가 아니므로)
+                ticket_id = -(hash(f"{request.event_id}:{request.schedule_id}:{seat_info.row}:{seat_info.number}") % 1000000)
+            
+            # Redis LOCK 시도
+            if not redis_service.try_lock_seat(ticket_id):
+                # LOCK 실패 시 이미 LOCK한 것들 해제
+                for locked_id in locked_tickets:
+                    redis_service.unlock_seat(locked_id)
+                raise HTTPException(
+                    status_code=409,
+                    detail=f"Seat {seat_info.row}-{seat_info.number} is currently being processed by another user. Please try again."
+                )
+            
+            locked_tickets.append(ticket_id)
+        
+        # 2단계: DB 트랜잭션 내에서 실제 예약 처리
+        # 모든 좌석에 LOCK을 획득했으므로 이제 안전하게 처리 가능
+        for seat_info in request.seats:
+            # DB 레벨 LOCK으로 좌석 조회 (SELECT FOR UPDATE)
+            ticket_query = db.query(Ticket).filter(
+                Ticket.event_id == request.event_id,
+                Ticket.seat_row == seat_info.row,
+                Ticket.seat_number == seat_info.number
+            )
+            if request.schedule_id:
+                ticket_query = ticket_query.filter(Ticket.schedule_id == request.schedule_id)
+            
+            # SELECT FOR UPDATE로 LOCK 획득
+            ticket = ticket_query.with_for_update().first()
             
             # 티켓이 없으면 생성
             if not ticket:
@@ -379,6 +421,9 @@ def create_bookings(
             existing_booking = booking_query.first()
             
             if existing_booking:
+                # LOCK 해제
+                for locked_id in locked_tickets:
+                    redis_service.unlock_seat(locked_id)
                 raise HTTPException(
                     status_code=400,
                     detail=f"Seat {seat_info.row}-{seat_info.number} is already booked"
@@ -397,7 +442,13 @@ def create_bookings(
             db.add(booking)
             created_bookings.append(booking)
         
+        # 3단계: 트랜잭션 커밋
         db.commit()
+        
+        # 4단계: 성공 후 캐시 무효화 및 LOCK 해제
+        redis_service.invalidate_seat_cache(request.event_id, request.schedule_id)
+        for locked_id in locked_tickets:
+            redis_service.unlock_seat(locked_id)
         
         # 생성된 booking들을 응답 형식으로 변환
         result = []
@@ -414,11 +465,19 @@ def create_bookings(
         
         return result
         
+    except HTTPException:
+        # HTTPException은 그대로 전파
+        db.rollback()
+        # LOCK 해제
+        for locked_id in locked_tickets:
+            redis_service.unlock_seat(locked_id)
+        raise
     except Exception as e:
         db.rollback()
-        if isinstance(e, HTTPException):
-            raise e
-        raise HTTPException(status_code=500, detail=str(e))
+        # LOCK 해제
+        for locked_id in locked_tickets:
+            redis_service.unlock_seat(locked_id)
+        raise HTTPException(status_code=500, detail=f"Booking failed: {str(e)}")
 
 
 class UserBookingResponse(BaseModel):

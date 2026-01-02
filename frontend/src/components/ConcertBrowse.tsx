@@ -108,7 +108,7 @@ const ConcertBrowse: React.FC<ConcertBrowseProps> = ({
   };
 
   return (
-    <div className="w-full py-8">
+    <div className="w-full py-8 bg-white">
       <div className="max-w-7xl mx-auto px-4">
         <h2 className="text-2xl font-bold text-gray-900 mb-6">
           {category} 둘러보기
