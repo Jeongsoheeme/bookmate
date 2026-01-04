@@ -36,36 +36,6 @@ jobs:
     runs-on: ubuntu-latest
 
     # ============================================
-    # 서비스 설정: 테스트에 필요한 외부 서비스들
-    # ============================================
-    services:
-      # PostgreSQL 데이터베이스 (테스트용)
-      postgres:
-        image: postgres:15
-        env:
-          POSTGRES_DB: bookmate_test
-          POSTGRES_USER: admin
-          POSTGRES_PASSWORD: bookmate123
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 5432:5432
-
-      # Redis 서버 (테스트용)
-      redis:
-        image: redis:7-alpine
-        options: >-
-          --health-cmd "redis-cli ping"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 6379:6379
-
-    # ============================================
     # 단계(Steps) 정의: 순차적으로 실행될 작업들
     # ============================================
     steps:
@@ -97,24 +67,15 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      # 4단계: 코드 스타일 검사 (선택사항)
-      # Python 코드가 표준 스타일을 따르는지 확인합니다
-      # 주석 처리되어 있으므로 필요시 활성화하세요
-      # - name: Lint with flake8
-      #   working-directory: ./backend
-      #   run: |
-      #     pip install flake8
-      #     flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
-
       # 6단계: 빌드 확인
       # 애플리케이션이 정상적으로 빌드되는지 확인합니다
       - name: Verify build
         working-directory: ./backend
         env:
-          DATABASE_URL: postgresql://admin:bookmate123@localhost:5432/bookmate_test
-          SECRET_KEY: test-secret-key-for-ci
-          REDIS_HOST: localhost
-          REDIS_PORT: 6379
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          SECRET_KEY: ${{ secrets.SECRET_KEY }}
+          REDIS_HOST: ${{ secrets.REDIS_HOST }}
+          REDIS_PORT: ${{ secrets.REDIS_PORT }}
         run: |
           # FastAPI 앱이 정상적으로 임포트되는지 확인
           python -c "from app.main import app; print('✅ Backend 빌드 성공!')"
