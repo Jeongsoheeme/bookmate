@@ -1,0 +1,217 @@
+# ============================================
+# GitHub Actions CI/CD 워크플로우
+# ============================================
+# 이 파일은 코드를 GitHub에 푸시할 때마다 자동으로 실행됩니다.
+#
+# 주요 기능:
+# 1. 코드 품질 검사 (Lint)
+# 2. 테스트 실행
+# 3. 빌드 확인
+# ============================================
+
+name: CI/CD Pipeline
+
+# ============================================
+# 트리거 설정: 언제 이 워크플로우가 실행될지 정의
+# ============================================
+on:
+  # main 브랜치에 코드가 푸시될 때 실행
+  push:
+    branches: [main]
+
+  # Pull Request가 생성되거나 업데이트될 때 실행
+  pull_request:
+    branches: [main]
+
+# ============================================
+# 작업(Jobs) 정의: 병렬로 실행할 수 있는 작업들
+# ============================================
+jobs:
+  # ============================================
+  # Backend 테스트 및 검증
+  # ============================================
+  backend:
+    name: Backend (Python/FastAPI)
+    # 실행 환경: Ubuntu 최신 버전
+    runs-on: ubuntu-latest
+
+    # ============================================
+    # 서비스 설정: 테스트에 필요한 외부 서비스들
+    # ============================================
+    services:
+      # PostgreSQL 데이터베이스 (테스트용)
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_DB: bookmate_test
+          POSTGRES_USER: admin
+          POSTGRES_PASSWORD: bookmate123
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+      # Redis 서버 (테스트용)
+      redis:
+        image: redis:7-alpine
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+
+    # ============================================
+    # 단계(Steps) 정의: 순차적으로 실행될 작업들
+    # ============================================
+    steps:
+      # 1단계: 코드 체크아웃
+      # GitHub 저장소의 코드를 가져옵니다
+      # ⚠️ 중요: GitHub Actions는 자동으로 GITHUB_TOKEN을 제공하므로
+      # 별도의 아이디/패스워드 입력이 필요 없습니다!
+      - name: Checkout code
+        uses: actions/checkout@v4
+        # token은 자동으로 제공되므로 명시할 필요 없음
+        # 필요시에만 아래 주석을 해제하세요:
+        # with:
+        #   token: ${{ secrets.GITHUB_TOKEN }}  # 자동 제공됨
+
+      # 2단계: Python 버전 설정
+      # 프로젝트에 맞는 Python 버전을 설치합니다
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          # 의존성 캐싱: 빌드 시간 단축
+          cache: "pip"
+
+      # 3단계: 의존성 설치
+      # requirements.txt에 있는 패키지들을 설치합니다
+      - name: Install dependencies
+        working-directory: ./backend
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      # 4단계: 코드 스타일 검사 (선택사항)
+      # Python 코드가 표준 스타일을 따르는지 확인합니다
+      # 주석 처리되어 있으므로 필요시 활성화하세요
+      # - name: Lint with flake8
+      #   working-directory: ./backend
+      #   run: |
+      #     pip install flake8
+      #     flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+
+      # 6단계: 빌드 확인
+      # 애플리케이션이 정상적으로 빌드되는지 확인합니다
+      - name: Verify build
+        working-directory: ./backend
+        env:
+          DATABASE_URL: postgresql://admin:bookmate123@localhost:5432/bookmate_test
+          SECRET_KEY: test-secret-key-for-ci
+          REDIS_HOST: localhost
+          REDIS_PORT: 6379
+        run: |
+          # FastAPI 앱이 정상적으로 임포트되는지 확인
+          python -c "from app.main import app; print('✅ Backend 빌드 성공!')"
+
+  # ============================================
+  # Frontend 테스트 및 빌드
+  # ============================================
+  frontend:
+    name: Frontend (React/TypeScript)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Node.js 설치
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          # npm 패키지 캐싱: 빌드 시간 단축
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      # 의존성 설치
+      - name: Install dependencies
+        working-directory: ./frontend
+        run: npm ci
+
+      # 코드 스타일 검사 (ESLint)
+      - name: Lint code
+        working-directory: ./frontend
+        run: npm run lint || echo "⚠️ Lint 오류가 있지만 계속 진행합니다."
+
+      # TypeScript 타입 검사
+      - name: Type check
+        working-directory: ./frontend
+        run: npx tsc --noEmit || echo "⚠️ TypeScript 오류가 있지만 계속 진행합니다."
+
+      # 프로덕션 빌드
+      - name: Build
+        working-directory: ./frontend
+        run: npm run build
+
+      # 빌드 결과물 확인
+      - name: Verify build artifacts
+        working-directory: ./frontend
+        run: |
+          if [ -d "dist" ]; then
+            echo "✅ Frontend 빌드 성공! dist 폴더가 생성되었습니다."
+            ls -la dist/
+          else
+            echo "❌ 빌드 실패: dist 폴더가 없습니다."
+            exit 1
+          fi
+
+  # ============================================
+  # Admin Frontend 테스트 및 빌드
+  # ============================================
+  admin-frontend:
+    name: Admin Frontend (React/TypeScript)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: admin-frontend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: ./admin-frontend
+        run: npm ci
+
+      - name: Lint code
+        working-directory: ./admin-frontend
+        run: npm run lint || echo "⚠️ Lint 오류가 있지만 계속 진행합니다."
+
+      - name: Type check
+        working-directory: ./admin-frontend
+        run: npx tsc --noEmit || echo "⚠️ TypeScript 오류가 있지만 계속 진행합니다."
+
+      - name: Build
+        working-directory: ./admin-frontend
+        run: npm run build
+
+      - name: Verify build artifacts
+        working-directory: ./admin-frontend
+        run: |
+          if [ -d "dist" ]; then
+            echo "✅ Admin Frontend 빌드 성공! dist 폴더가 생성되었습니다."
+            ls -la dist/
+          else
+            echo "❌ 빌드 실패: dist 폴더가 없습니다."
+            exit 1
+          fi

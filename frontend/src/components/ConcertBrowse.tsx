@@ -46,6 +46,8 @@ const ConcertBrowse: React.FC<ConcertBrowseProps> = ({
   const navigate = useNavigate();
   const [selectedGenre, setSelectedGenre] = useState<Genre>("🔥 요즘 HOT");
 
+  console.log(events);
+
   // 이벤트 데이터를 콘서트 형식으로 변환하고 필터링
   const filteredConcerts = useMemo(() => {
     let filtered = events;
@@ -114,7 +116,7 @@ const ConcertBrowse: React.FC<ConcertBrowseProps> = ({
           {category} 둘러보기
         </h2>
         <div className="mb-8 overflow-x-auto">
-          <div className="flex gap-3 pb-2">
+          <div className="flex gap-2 pb-2">
             {genres.map((genre) => (
               <button
                 key={genre}

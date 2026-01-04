@@ -54,7 +54,7 @@ const BannerCarousel: React.FC<BannerCarouselProps> = ({ items }) => {
       <div className="max-w-7xl mx-auto relative">
         <div className="overflow-hidden relative">
           <div
-            className="flex transition-transform duration-500 ease-in-out px-6"
+            className="flex transition-transform duration-500 ease-in-out"
             style={{
               transform: `translateX(-${currentPage * 100}%)`,
             }}
@@ -67,7 +67,7 @@ const BannerCarousel: React.FC<BannerCarouselProps> = ({ items }) => {
               return (
                 <div
                   key={pageIndex}
-                  className="flex gap-4 flex-shrink-0 w-full"
+                  className="flex gap-4 flex-shrink-0 w-full px-6"
                 >
                   {pageItems.map((item) => (
                     <div

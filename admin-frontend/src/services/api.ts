@@ -248,11 +248,16 @@ export const adminEventsApi = {
     if (data.description) formData.append("description", data.description);
     if (data.location) formData.append("location", data.location);
     if (data.genre) formData.append("genre", data.genre);
+    if (data.sub_genre) formData.append("sub_genre", data.sub_genre);
+    if (data.is_hot !== undefined)
+      formData.append("is_hot", data.is_hot.toString());
     formData.append("venue_id", data.venue_id.toString());
     if (data.ticket_receipt_method)
       formData.append("ticket_receipt_method", data.ticket_receipt_method);
     if (data.sales_open_date)
       formData.append("sales_open_date", data.sales_open_date);
+    if (data.sales_end_date)
+      formData.append("sales_end_date", data.sales_end_date);
 
     // schedules를 JSON 문자열로 변환
     formData.append("schedules_json", JSON.stringify(data.schedules || []));

@@ -74,6 +74,17 @@ async def create_event(
                 detail=f"Invalid genre: {genre}"
             )
     
+    # sub_genre 파싱
+    event_sub_genre = None
+    if sub_genre:
+        try:
+            event_sub_genre = EventSubGenre(sub_genre)
+        except ValueError:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Invalid sub_genre: {sub_genre}"
+            )
+    
     # ticket_receipt_method 파싱
     receipt_method = None
     if ticket_receipt_method:
@@ -143,7 +154,7 @@ async def create_event(
         location=location,
         genre=event_genre,
         sub_genre=event_sub_genre,
-        is_hot=is_hot_value,
+        is_hot=is_hot,
         venue_id=venue_id,
         poster_image=poster_image_path,
         ticket_receipt_method=receipt_method,
