@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { AxiosError } from "axios";
 import Header from "../components/Header";
 import { authApi } from "../services/api";
 import type { User, UserUpdate } from "../services/api";
@@ -73,21 +74,21 @@ const ProfileManagePage: React.FC = () => {
     }));
   };
 
-  const handleSave = async () => {
-    setSaving(true);
-    try {
-      const updatedUser = await authApi.updateMe(formData);
-      setUser(updatedUser);
-      alert("정보가 저장되었습니다.");
-    } catch (error: any) {
-      console.error("정보 저장 중 오류:", error);
-      alert(
-        error.response?.data?.detail || "정보 저장 중 오류가 발생했습니다."
-      );
-    } finally {
-      setSaving(false);
-    }
-  };
+  // const handleSave = async () => {
+  //   setSaving(true);
+  //   try {
+  //     const updatedUser = await authApi.updateMe(formData);
+  //     setUser(updatedUser);
+  //     alert("정보가 저장되었습니다.");
+  //   } catch (error: any) {
+  //     console.error("정보 저장 중 오류:", error);
+  //     alert(
+  //       error.response?.data?.detail || "정보 저장 중 오류가 발생했습니다."
+  //     );
+  //   } finally {
+  //     setSaving(false);
+  //   }
+  // };
 
   const handleLogout = async () => {
     const refreshToken = localStorage.getItem("refreshToken");
@@ -151,7 +152,11 @@ const ProfileManagePage: React.FC = () => {
           <div className="space-y-0 border-t border-gray-200">
             {/* 닉네임 */}
             <button
-              onClick={() => setActiveSection(activeSection === "nickname" ? null : "nickname")}
+              onClick={() =>
+                setActiveSection(
+                  activeSection === "nickname" ? null : "nickname"
+                )
+              }
               className="w-full flex items-center justify-between py-4 border-b border-gray-200 hover:bg-gray-50 transition-colors"
             >
               <span className="text-gray-900">닉네임</span>
@@ -172,7 +177,9 @@ const ProfileManagePage: React.FC = () => {
 
             {/* 연락처 */}
             <button
-              onClick={() => setActiveSection(activeSection === "contact" ? null : "contact")}
+              onClick={() =>
+                setActiveSection(activeSection === "contact" ? null : "contact")
+              }
               className="w-full flex items-center justify-between py-4 border-b border-gray-200 hover:bg-gray-50 transition-colors"
             >
               <span className="text-gray-900">연락처</span>
@@ -193,7 +200,9 @@ const ProfileManagePage: React.FC = () => {
 
             {/* 배송지 관리 */}
             <button
-              onClick={() => setActiveSection(activeSection === "address" ? null : "address")}
+              onClick={() =>
+                setActiveSection(activeSection === "address" ? null : "address")
+              }
               className="w-full flex items-center justify-between py-4 border-b border-gray-200 hover:bg-gray-50 transition-colors"
             >
               <span className="text-gray-900">배송지 관리</span>
@@ -237,12 +246,14 @@ const ProfileManagePage: React.FC = () => {
                       setUser(updatedUser);
                       alert("닉네임이 저장되었습니다.");
                       setActiveSection(null);
-                    } catch (error: any) {
+                    } catch (error) {
                       console.error("닉네임 저장 중 오류:", error);
-                      alert(
-                        error.response?.data?.detail ||
-                          "닉네임 저장 중 오류가 발생했습니다."
-                      );
+                      const errorMessage =
+                        error instanceof AxiosError &&
+                        error.response?.data?.detail
+                          ? error.response.data.detail
+                          : "닉네임 저장 중 오류가 발생했습니다.";
+                      alert(errorMessage);
                     } finally {
                       setSaving(false);
                     }
@@ -302,12 +313,14 @@ const ProfileManagePage: React.FC = () => {
                       setUser(updatedUser);
                       alert("연락처가 저장되었습니다.");
                       setActiveSection(null);
-                    } catch (error: any) {
+                    } catch (error) {
                       console.error("연락처 저장 중 오류:", error);
-                      alert(
-                        error.response?.data?.detail ||
-                          "연락처 저장 중 오류가 발생했습니다."
-                      );
+                      const errorMessage =
+                        error instanceof AxiosError &&
+                        error.response?.data?.detail
+                          ? error.response.data.detail
+                          : "연락처 저장 중 오류가 발생했습니다.";
+                      alert(errorMessage);
                     } finally {
                       setSaving(false);
                     }
@@ -331,7 +344,9 @@ const ProfileManagePage: React.FC = () => {
                   <input
                     type="text"
                     value={formData.postal_code || ""}
-                    onChange={(e) => handleChange("postal_code", e.target.value)}
+                    onChange={(e) =>
+                      handleChange("postal_code", e.target.value)
+                    }
                     className="w-32 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                     placeholder="우편번호"
                   />
@@ -352,7 +367,9 @@ const ProfileManagePage: React.FC = () => {
                         }).open();
                       } else {
                         // 다음 주소 API 스크립트가 로드되지 않은 경우
-                        alert("주소 검색 기능을 사용하려면 페이지를 새로고침해주세요.");
+                        alert(
+                          "주소 검색 기능을 사용하려면 페이지를 새로고침해주세요."
+                        );
                       }
                     }}
                     className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
@@ -380,7 +397,9 @@ const ProfileManagePage: React.FC = () => {
                 <input
                   type="text"
                   value={formData.detail_address || ""}
-                  onChange={(e) => handleChange("detail_address", e.target.value)}
+                  onChange={(e) =>
+                    handleChange("detail_address", e.target.value)
+                  }
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="상세주소를 입력하세요"
                 />
@@ -398,12 +417,14 @@ const ProfileManagePage: React.FC = () => {
                       setUser(updatedUser);
                       alert("배송지 정보가 저장되었습니다.");
                       setActiveSection(null);
-                    } catch (error: any) {
+                    } catch (error) {
                       console.error("배송지 정보 저장 중 오류:", error);
-                      alert(
-                        error.response?.data?.detail ||
-                          "배송지 정보 저장 중 오류가 발생했습니다."
-                      );
+                      const errorMessage =
+                        error instanceof AxiosError &&
+                        error.response?.data?.detail
+                          ? error.response.data.detail
+                          : "배송지 정보 저장 중 오류가 발생했습니다.";
+                      alert(errorMessage);
                     } finally {
                       setSaving(false);
                     }
@@ -423,4 +444,3 @@ const ProfileManagePage: React.FC = () => {
 };
 
 export default ProfileManagePage;
-
