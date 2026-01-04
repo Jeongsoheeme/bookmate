@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import BannerTable from "../components/BannerTable";
 import BannerModal from "../components/BannerModal";
 import { eventsApi, bannersApi } from "../services/api";
-import type { Event } from "../services/api";
+import type { Event, EventGenre } from "../services/api";
 
 export interface Banner {
   id: number;
@@ -142,7 +142,7 @@ const BannerListPage = () => {
       const apiData = {
         order: bannerData.order,
         event_id: bannerData.eventId,
-        genre: bannerData.genre || null,
+        genre: bannerData.genre ? (bannerData.genre as EventGenre) : null,
         link: bannerData.link || null,
         exposure_start: bannerData.exposureStart
           ? new Date(bannerData.exposureStart).toISOString()

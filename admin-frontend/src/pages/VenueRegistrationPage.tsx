@@ -295,6 +295,7 @@ const VenueRegistrationPage = () => {
                   rows={configuredRows}
                   seatsPerRow={seatsPerRow}
                   selectedSeats={selectedSeats}
+                  onSeatToggle={handleSeatToggle}
                 />
               </div>
             </div>

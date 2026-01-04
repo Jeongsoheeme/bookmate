@@ -56,7 +56,8 @@ const VenueListPage = () => {
     // navigate(`/admin/venue/${venueId}`);
   };
 
-  const handleDeleteVenue = async (venueId: number) => {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const handleDeleteVenue = async (_venueId: number) => {
     if (!window.confirm("이 공연장을 삭제하시겠습니까?")) {
       return;
     }
@@ -144,7 +145,10 @@ const VenueListPage = () => {
             <tbody className="divide-y divide-gray-200">
               {filteredVenues.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-6 py-12 text-center text-gray-500">
+                  <td
+                    colSpan={7}
+                    className="px-6 py-12 text-center text-gray-500"
+                  >
                     {searchQuery
                       ? "검색 결과가 없습니다."
                       : "등록된 공연장이 없습니다."}
@@ -176,7 +180,9 @@ const VenueListPage = () => {
 
                       {/* 행 개수 */}
                       <td className="px-6 py-4">
-                        <div className="text-sm text-gray-900">{rowCount}개</div>
+                        <div className="text-sm text-gray-900">
+                          {rowCount}개
+                        </div>
                       </td>
 
                       {/* 총 좌석 수 */}
@@ -237,4 +243,3 @@ const VenueListPage = () => {
 };
 
 export default VenueListPage;
-
