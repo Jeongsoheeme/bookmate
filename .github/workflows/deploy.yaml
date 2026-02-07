@@ -93,14 +93,19 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: ${{ github.repository_owner }}/bookmate
+          ref: ${{ github.ref }}
           token: ${{ secrets.DEPLOY_REPO_TOKEN }}
           path: deploy
 
       - name: Update image tag in deployment repo
         run: |
           cd deploy
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git pull --rebase origin ${{ github.ref_name }}
+
           mkdir -p $HOME/bin
-          wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O $HOME/bin/yq
+          wget -q https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O $HOME/bin/yq
           chmod +x $HOME/bin/yq
           export PATH=$HOME/bin:$PATH
 
@@ -110,8 +115,6 @@ jobs:
 
           yq eval ".backend.image = \"${IMAGE}\" | .backend.tag = \"${TAG}\"" -i "deploy/helm/backend/values-${ENV}.yaml"
 
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
           git add "deploy/helm/backend/values-${ENV}.yaml"
           git diff --staged --quiet || (git commit -m "Update backend image tag to ${TAG} for ${ENV}" && git push)
 
@@ -213,14 +216,19 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: ${{ github.repository_owner }}/bookmate
+          ref: ${{ github.ref }}
           token: ${{ secrets.DEPLOY_REPO_TOKEN }}
           path: deploy
 
       - name: Update frontend & admin-frontend image tags in deployment repo
         run: |
           cd deploy
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git pull --rebase origin ${{ github.ref_name }}
+
           mkdir -p $HOME/bin
-          wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O $HOME/bin/yq
+          wget -q https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O $HOME/bin/yq
           chmod +x $HOME/bin/yq
           export PATH=$HOME/bin:$PATH
 
@@ -230,7 +238,5 @@ jobs:
 
           yq eval ".frontend.image = \"ghcr.io/${OWNER}/bookmate-frontend\" | .frontend.tag = \"${TAG}\" | .adminFrontend.image = \"ghcr.io/${OWNER}/bookmate-admin-frontend\" | .adminFrontend.tag = \"${TAG}\"" -i "deploy/helm/frontend/values-${ENV}.yaml"
 
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
           git add "deploy/helm/frontend/values-${ENV}.yaml"
           git diff --staged --quiet || (git commit -m "Update frontend & admin-frontend image tags to ${TAG} for ${ENV}" && git push)
