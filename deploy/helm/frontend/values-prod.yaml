@@ -5,11 +5,11 @@
 
 namespace: bookmate-prod
 frontend:
-  tag: prod-c0d6f26070f6954d2f4499048c6e9fd1f239d43b
+  tag: prod-65658b33e565a0e6e35ea62e053e77580fc76ce6
   replicas: 2
   image: ghcr.io/jeongsoheeme/bookmate-frontend
 adminFrontend:
-  tag: prod-c0d6f26070f6954d2f4499048c6e9fd1f239d43b
+  tag: prod-65658b33e565a0e6e35ea62e053e77580fc76ce6
   replicas: 1
   image: ghcr.io/jeongsoheeme/bookmate-admin-frontend
 ingress:
