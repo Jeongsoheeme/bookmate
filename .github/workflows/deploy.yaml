@@ -69,6 +69,7 @@ jobs:
       - name: Determine environment and tag
         id: vars
         run: |
+          echo "owner_lower=$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_OUTPUT
           if [ "${{ github.ref }}" == "refs/heads/main" ]; then
             echo "environment=prod" >> $GITHUB_OUTPUT
             echo "tag=prod-${{ github.sha }}" >> $GITHUB_OUTPUT
@@ -83,8 +84,8 @@ jobs:
           context: ./backend
           push: true
           tags: |
-            ghcr.io/${{ github.repository_owner }}/bookmate:${{ steps.vars.outputs.tag }}
-            ghcr.io/${{ github.repository_owner }}/bookmate:${{ steps.vars.outputs.environment }}-latest
+            ghcr.io/${{ steps.vars.outputs.owner_lower }}/bookmate-backend:${{ steps.vars.outputs.tag }}
+            ghcr.io/${{ steps.vars.outputs.owner_lower }}/bookmate-backend:${{ steps.vars.outputs.environment }}-latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -105,7 +106,7 @@ jobs:
 
           ENV="${{ steps.vars.outputs.environment }}"
           TAG="${{ steps.vars.outputs.tag }}"
-          IMAGE="ghcr.io/${{ github.repository_owner }}/bookmate"
+          IMAGE="ghcr.io/${{ steps.vars.outputs.owner_lower }}/bookmate-backend"
 
           yq eval ".backend.image = \"${IMAGE}\" | .backend.tag = \"${TAG}\"" -i "helm/backend/values-${ENV}.yaml"
 
@@ -177,6 +178,7 @@ jobs:
       - name: Determine environment and tag
         id: vars
         run: |
+          echo "owner_lower=$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_OUTPUT
           if [ "${{ github.ref }}" == "refs/heads/main" ]; then
             echo "environment=prod" >> $GITHUB_OUTPUT
             echo "tag=prod-${{ github.sha }}" >> $GITHUB_OUTPUT
@@ -191,8 +193,8 @@ jobs:
           context: ./frontend
           push: true
           tags: |
-            ghcr.io/${{ github.repository_owner }}/bookmate:${{ steps.vars.outputs.tag }}
-            ghcr.io/${{ github.repository_owner }}/bookmate:${{ steps.vars.outputs.environment }}-latest
+            ghcr.io/${{ steps.vars.outputs.owner_lower }}/bookmate-frontend:${{ steps.vars.outputs.tag }}
+            ghcr.io/${{ steps.vars.outputs.owner_lower }}/bookmate-frontend:${{ steps.vars.outputs.environment }}-latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -202,8 +204,8 @@ jobs:
           context: ./admin-frontend
           push: true
           tags: |
-            ghcr.io/${{ github.repository_owner }}/bookmate:${{ steps.vars.outputs.tag }}
-            ghcr.io/${{ github.repository_owner }}/bookmate:${{ steps.vars.outputs.environment }}-latest
+            ghcr.io/${{ steps.vars.outputs.owner_lower }}/bookmate-admin-frontend:${{ steps.vars.outputs.tag }}
+            ghcr.io/${{ steps.vars.outputs.owner_lower }}/bookmate-admin-frontend:${{ steps.vars.outputs.environment }}-latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -224,9 +226,9 @@ jobs:
 
           ENV="${{ steps.vars.outputs.environment }}"
           TAG="${{ steps.vars.outputs.tag }}"
-          OWNER="${{ github.repository_owner }}"
+          OWNER="${{ steps.vars.outputs.owner_lower }}"
 
-          yq eval ".frontend.image = \"ghcr.io/${OWNER}/bookmate\" | .frontend.tag = \"${TAG}\" | .adminFrontend.image = \"ghcr.io/${OWNER}/bookmate\" | .adminFrontend.tag = \"${TAG}\"" -i "helm/frontend/values-${ENV}.yaml"
+          yq eval ".frontend.image = \"ghcr.io/${OWNER}/bookmate-frontend\" | .frontend.tag = \"${TAG}\" | .adminFrontend.image = \"ghcr.io/${OWNER}/bookmate-admin-frontend\" | .adminFrontend.tag = \"${TAG}\"" -i "helm/frontend/values-${ENV}.yaml"
 
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
