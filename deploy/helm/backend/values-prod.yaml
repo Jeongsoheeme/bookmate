@@ -4,9 +4,8 @@
 # 사용법: helm install bookmate-backend . -f values.yaml -f values-prod.yaml
 
 namespace: bookmate-prod
-
 backend:
-  tag: latest
+  tag: prod-37526bf99f2b22040b37d0f0916f105e9211cb47
   replicas: 2
   resources:
     requests:
@@ -15,7 +14,7 @@ backend:
     limits:
       cpu: "1"
       memory: 1Gi
-
+  image: ghcr.io/jeongsoheeme/bookmate-backend
 postgres:
   password: CHANGE_ME_IN_REAL_PROD
   storage: 20Gi
@@ -26,9 +25,7 @@ postgres:
     limits:
       cpu: "1"
       memory: 1Gi
-
 redis:
   storage: 5Gi
-
 secrets:
   secretKey: CHANGE_ME_IN_REAL_PROD
