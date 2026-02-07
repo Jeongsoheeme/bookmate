@@ -1,0 +1,15 @@
+# ============================================
+# Bookmate Frontend - 개발 환경 오버라이드
+# ============================================
+# 사용법: helm install bookmate-frontend . -f values.yaml -f values-dev.yaml
+
+namespace: bookmate
+
+frontend:
+  replicas: 1
+
+adminFrontend:
+  replicas: 1
+
+ingress:
+  enabled: false

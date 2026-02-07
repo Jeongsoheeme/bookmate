@@ -21,8 +21,20 @@ const EventDetailPage: React.FC = () => {
   useEffect(() => {
     const fetchEvent = async () => {
       if (!eventId) return;
+
       try {
         const eventData = await eventsApi.getById(Number(eventId));
+
+        // 인기 이벤트인 경우 토큰 확인
+        if (eventData.is_hot === 1) {
+          const storedToken = localStorage.getItem(`queueToken:${eventId}`);
+          if (!storedToken) {
+            // 토큰이 없으면 대기열 진입 페이지로 리다이렉트
+            navigate(`/queue/${eventId}`);
+            return;
+          }
+        }
+
         setEvent(eventData);
         // 첫 번째 스케줄을 기본 선택
         if (eventData.schedules && eventData.schedules.length > 0) {
@@ -33,15 +45,24 @@ const EventDetailPage: React.FC = () => {
           // 달력을 첫 번째 회차 날짜로 설정
           setMonth(firstScheduleDate);
         }
-      } catch (error) {
+      } catch (error: unknown) {
         console.error("이벤트 정보를 가져오는 중 오류가 발생했습니다:", error);
+
+        // 403 에러면 토큰이 만료되었거나 무효한 것 (Axios 등 response 있는 에러)
+        const err = error as { response?: { status?: number } };
+        if (err.response?.status === 403) {
+          localStorage.removeItem(`queueToken:${eventId}`);
+          localStorage.removeItem(`queueTokenExpires:${eventId}`);
+          navigate(`/queue/${eventId}`);
+          return;
+        }
       } finally {
         setLoading(false);
       }
     };
 
     fetchEvent();
-  }, [eventId]);
+  }, [eventId, navigate]);
 
   // 선택된 날짜에 해당하는 스케줄 필터링
   const availableSchedules = useMemo(() => {
@@ -124,7 +145,7 @@ const EventDetailPage: React.FC = () => {
     if (selectedSchedule) {
       // 좌석 선택 페이지로 이동
       navigate(
-        `/event/${eventId}/booking/seat?scheduleId=${selectedSchedule.id}`
+        `/event/${eventId}/booking/seat?scheduleId=${selectedSchedule.id}`,
       );
     }
   };
@@ -594,7 +615,7 @@ const EventDetailPage: React.FC = () => {
                       <p>
                         판매 시작일:{" "}
                         {new Date(event.sales_open_date).toLocaleString(
-                          "ko-KR"
+                          "ko-KR",
                         )}
                       </p>
                     )}

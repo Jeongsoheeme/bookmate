@@ -1,0 +1,18 @@
+# ============================================
+# Bookmate Frontend - 프로덕션 환경 오버라이드
+# ============================================
+# 사용법: helm install bookmate-frontend . -f values.yaml -f values-prod.yaml
+
+namespace: bookmate-prod
+
+frontend:
+  tag: latest
+  replicas: 2
+
+adminFrontend:
+  tag: latest
+  replicas: 1
+
+ingress:
+  enabled: true
+  host: bookmate.example.com

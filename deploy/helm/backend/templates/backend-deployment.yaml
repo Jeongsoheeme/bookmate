@@ -1,0 +1,84 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bookmate-backend
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: bookmate-backend
+spec:
+  replicas: {{ .Values.backend.replicas }}
+  selector:
+    matchLabels:
+      app: bookmate-backend
+  template:
+    metadata:
+      labels:
+        app: bookmate-backend
+    spec:
+      containers:
+        - name: backend
+          image: {{ .Values.backend.image }}:{{ .Values.backend.tag }}
+          ports:
+            - containerPort: {{ .Values.backend.port }}
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: bookmate-secrets
+                  key: database-url
+            - name: SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: bookmate-secrets
+                  key: secret-key
+            - name: ALGORITHM
+              value: {{ .Values.backend.env.algorithm | quote }}
+            - name: ACCESS_TOKEN_EXPIRE_MINUTES
+              value: {{ .Values.backend.env.accessTokenExpireMinutes | quote }}
+            - name: REFRESH_TOKEN_EXPIRE_DAYS
+              value: {{ .Values.backend.env.refreshTokenExpireDays | quote }}
+            - name: UPLOAD_DIR
+              value: {{ .Values.backend.env.uploadDir | quote }}
+            - name: REDIS_HOST
+              value: "redis"
+            - name: REDIS_PORT
+              value: {{ .Values.redis.port | quote }}
+            - name: REDIS_DB
+              value: {{ .Values.backend.env.redisDb | quote }}
+            - name: SEAT_LOCK_TIMEOUT
+              value: {{ .Values.backend.env.seatLockTimeout | quote }}
+            - name: QUEUE_BATCH_SIZE
+              value: {{ .Values.backend.env.queueBatchSize | quote }}
+            - name: QUEUE_BATCH_INTERVAL
+              value: {{ .Values.backend.env.queueBatchInterval | quote }}
+            - name: QUEUE_TOKEN_TTL
+              value: {{ .Values.backend.env.queueTokenTtl | quote }}
+            - name: OPENAI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: bookmate-secrets
+                  key: openai-api-key
+            - name: OPENAI_MODEL
+              valueFrom:
+                secretKeyRef:
+                  name: bookmate-secrets
+                  key: openai-model
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: {{ .Values.backend.port }}
+            initialDelaySeconds: 10
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: {{ .Values.backend.port }}
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: {{ .Values.backend.resources.requests.cpu }}
+              memory: {{ .Values.backend.resources.requests.memory }}
+            limits:
+              cpu: {{ .Values.backend.resources.limits.cpu }}
+              memory: {{ .Values.backend.resources.limits.memory }}

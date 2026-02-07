@@ -78,13 +78,14 @@ class RedisService:
                 """
                 self.client.eval(lua_script, 1, lock_key, lock_value)
     
-    def try_lock_seat(self, ticket_id: int, timeout: int = None) -> bool:
+    def try_lock_seat(self, ticket_id: int, timeout: int = None, user_id: int = None) -> bool:
         """
         좌석 LOCK 시도 (논블로킹)
         
         Args:
             ticket_id: 티켓 ID
             timeout: LOCK 타임아웃 (초)
+            user_id: 사용자 ID (같은 사용자의 중복 요청 허용용)
             
         Returns:
             bool: LOCK 획득 성공 여부
@@ -93,22 +94,70 @@ class RedisService:
         lock_timeout = timeout or settings.SEAT_LOCK_TIMEOUT
         
         try:
+            # 사용자 ID가 있으면 LOCK 값에 포함
+            if user_id:
+                lock_value = f"{user_id}:{uuid.uuid4()}"
+            else:
+                lock_value = str(uuid.uuid4())
+            
             return bool(self.client.set(
                 lock_key,
-                str(uuid.uuid4()),
+                lock_value,
                 nx=True,
                 ex=lock_timeout
             ))
         except Exception:
             return False
     
-    def unlock_seat(self, ticket_id: int):
-        """좌석 LOCK 해제"""
+    def unlock_seat(self, ticket_id: int, user_id: Optional[int] = None):
+        """
+        좌석 LOCK 해제
+        
+        Args:
+            ticket_id: 티켓 ID
+            user_id: 사용자 ID (제공되면 해당 사용자의 LOCK만 해제)
+        """
         lock_key = f"seat_lock:{ticket_id}"
         try:
-            self.client.delete(lock_key)
+            if user_id:
+                # 사용자 ID가 제공되면 해당 사용자의 LOCK만 해제
+                lock_value = self.client.get(lock_key)
+                if lock_value and ":" in lock_value:
+                    lock_user_id = int(lock_value.split(":")[0])
+                    if lock_user_id == user_id:
+                        self.client.delete(lock_key)
+            else:
+                # 사용자 ID가 없으면 무조건 삭제
+                self.client.delete(lock_key)
         except Exception:
             pass
+    
+    def get_lock_user_id(self, ticket_id: int) -> Optional[int]:
+        """
+        LOCK을 가지고 있는 사용자 ID 조회
+        
+        Args:
+            ticket_id: 티켓 ID
+            
+        Returns:
+            Optional[int]: 사용자 ID, LOCK이 없거나 형식이 맞지 않으면 None
+        """
+        lock_key = f"seat_lock:{ticket_id}"
+        try:
+            lock_value = self.client.get(lock_key)
+            if lock_value and ":" in lock_value:
+                user_id_str = lock_value.split(":")[0]
+                return int(user_id_str)
+        except (ValueError, AttributeError, TypeError) as e:
+            # 디버깅: 형식 오류 로깅
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.warning(f"Failed to parse lock user ID for ticket_id={ticket_id}, lock_value={lock_value}, error={e}")
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Error getting lock user ID for ticket_id={ticket_id}: {e}")
+        return None
     
     def cache_seat_status(self, event_id: int, schedule_id: Optional[int], seat_key: str, available: bool, ttl: int = 300):
         """

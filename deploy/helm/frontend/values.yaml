@@ -1,0 +1,43 @@
+# ============================================
+# Bookmate Frontend Chart - 기본값
+# ============================================
+
+# -- 글로벌 설정 --
+namespace: bookmate
+
+# -- Backend 참조 (Ingress 라우팅용) --
+backend:
+  port: 8001
+
+# -- Frontend (React + Nginx) --
+frontend:
+  image: Jeongsohee/bookmate-frontend
+  tag: latest
+  replicas: 1
+  port: 80
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      memory: 128Mi
+
+# -- Admin Frontend (React + Nginx) --
+adminFrontend:
+  image: Jeongsohee/bookmate-admin-frontend
+  tag: latest
+  replicas: 1
+  port: 80
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      memory: 128Mi
+
+# -- Ingress (외부 접속 설정) --
+ingress:
+  enabled: false
+  host: bookmate.local

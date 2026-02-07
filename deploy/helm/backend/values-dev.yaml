@@ -1,0 +1,26 @@
+# ============================================
+# Bookmate Backend - 개발 환경 오버라이드
+# ============================================
+# 사용법: helm install bookmate-backend . -f values.yaml -f values-dev.yaml
+
+namespace: bookmate
+
+backend:
+  replicas: 1
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+postgres:
+  password: bookmate123
+  storage: 5Gi
+
+redis:
+  storage: 1Gi
+
+secrets:
+  secretKey: dev-secret-key-change-in-prod

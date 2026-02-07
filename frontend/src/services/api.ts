@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8001";
 
 // 이미지 URL을 전체 URL로 변환하는 헬퍼 함수
 export const getImageUrl = (
@@ -31,6 +31,32 @@ apiClient.interceptors.request.use(
     if (accessToken) {
       config.headers.Authorization = `Bearer ${accessToken}`;
     }
+
+    // 대기열 토큰 추가 (이벤트 관련 요청에만)
+    let eventId: string | null = null;
+
+    // URL에서 event_id 추출 (/events/{id}/...)
+    const eventIdMatch = config.url?.match(/\/events\/(\d+)/);
+    if (eventIdMatch) {
+      eventId = eventIdMatch[1];
+    }
+
+    // request body에서 event_id 추출 (/bookings, /seats/lock)
+    if (!eventId && config.data) {
+      const data =
+        typeof config.data === "string" ? JSON.parse(config.data) : config.data;
+      if (data?.event_id) {
+        eventId = String(data.event_id);
+      }
+    }
+
+    if (eventId) {
+      const queueToken = localStorage.getItem(`queueToken:${eventId}`);
+      if (queueToken) {
+        config.headers["X-Queue-Token"] = queueToken;
+      }
+    }
+
     return config;
   },
   (error) => {
@@ -39,9 +65,47 @@ apiClient.interceptors.request.use(
 );
 
 apiClient.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    // 대기열 토큰이 응답 헤더에 있으면 저장
+    const queueToken = response.headers["x-queue-token"];
+    const tokenExpires = response.headers["x-queue-token-expires"];
+
+    if (queueToken) {
+      // 이벤트 ID 추출 (URL에서)
+      const eventIdMatch = response.config.url?.match(/\/events\/(\d+)/);
+      if (eventIdMatch) {
+        const eventId = eventIdMatch[1];
+        localStorage.setItem(`queueToken:${eventId}`, queueToken);
+        if (tokenExpires) {
+          localStorage.setItem(`queueTokenExpires:${eventId}`, tokenExpires);
+        }
+      }
+    }
+
+    return response;
+  },
   async (error) => {
     const originalRequest = error.config;
+
+    // 403 에러이고 대기열 토큰 관련이면 대기열 진입 페이지로 리다이렉트
+    if (error.response?.status === 403) {
+      const errorData = error.response.data;
+      if (
+        errorData?.error === "대기열 토큰 필요" ||
+        errorData?.error === "대기열 토큰 무효"
+      ) {
+        const eventIdMatch = error.config.url?.match(/\/events\/(\d+)/);
+        if (eventIdMatch) {
+          const eventId = eventIdMatch[1];
+          // 토큰 제거
+          localStorage.removeItem(`queueToken:${eventId}`);
+          localStorage.removeItem(`queueTokenExpires:${eventId}`);
+          // 대기열 진입 페이지로 이동
+          window.location.href = `/queue/${eventId}`;
+          return Promise.reject(error);
+        }
+      }
+    }
 
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
@@ -180,6 +244,35 @@ export const authApi = {
   },
 };
 
+export interface AISearchRequest {
+  query: string;
+}
+
+export interface EventScheduleForSearch {
+  id: number;
+  start_datetime: string;
+  end_datetime?: string | null;
+  running_time?: number | null;
+}
+
+export interface AISearchResponse {
+  event_id: number | null;
+  event_title: string | null;
+  confidence: number;
+  message: string;
+  schedules?: EventScheduleForSearch[] | null;
+}
+
+export interface IntentClassificationRequest {
+  query: string;
+}
+
+export interface IntentClassificationResponse {
+  intent: "search" | "booking";
+  confidence: number;
+  message: string;
+}
+
 export const eventsApi = {
   getAll: async (): Promise<Event[]> => {
     const response = await apiClient.get<Event[]>("/events/");
@@ -187,6 +280,26 @@ export const eventsApi = {
   },
   getById: async (eventId: number): Promise<Event> => {
     const response = await apiClient.get<Event>(`/events/${eventId}`);
+    return response.data;
+  },
+  searchByAI: async (query: string): Promise<AISearchResponse> => {
+    const response = await apiClient.post<AISearchResponse>(
+      "/events/search/ai",
+      {
+        query,
+      }
+    );
+    return response.data;
+  },
+  classifyIntent: async (
+    query: string
+  ): Promise<IntentClassificationResponse> => {
+    const response = await apiClient.post<IntentClassificationResponse>(
+      "/events/ai/intent",
+      {
+        query,
+      }
+    );
     return response.data;
   },
 };
@@ -290,13 +403,67 @@ export interface CreateBookingRequest {
   } | null;
 }
 
+export interface SeatLockRequest {
+  event_id: number;
+  schedule_id?: number | null;
+  seats: Array<{ row: string; number: number }>;
+}
+
+export interface SeatLockResponse {
+  success: boolean;
+  message: string;
+  locked_seats: Array<{ row: string; number: number; ticket_id: number }>;
+}
+
 export const bookingsApi = {
+  lockSeats: async (data: SeatLockRequest): Promise<SeatLockResponse> => {
+    const response = await apiClient.post<SeatLockResponse>(
+      "/seats/lock",
+      data
+    );
+    return response.data;
+  },
   create: async (data: CreateBookingRequest): Promise<Booking[]> => {
     const response = await apiClient.post<Booking[]>("/bookings", data);
     return response.data;
   },
   getMyBookings: async (): Promise<UserBooking[]> => {
     const response = await apiClient.get<UserBooking[]>("/bookings/my");
+    return response.data;
+  },
+};
+
+export interface QueueStatusResponse {
+  in_queue: boolean;
+  queue_token: string | null;
+  position: number | null;
+  total: number;
+  estimated_wait_time?: number;
+  batch_size?: number;
+  batch_interval?: number;
+}
+
+export interface QueueEnterResponse {
+  in_queue: boolean;
+  queue_token: string | null;
+  position: number;
+  total: number;
+  estimated_wait_time?: number;
+  batch_size?: number;
+  batch_interval?: number;
+}
+
+export const queueApi = {
+  enter: async (eventId: number): Promise<QueueEnterResponse> => {
+    const response = await apiClient.post<QueueEnterResponse>(
+      `/queue/enter/${eventId}`
+    );
+    return response.data;
+  },
+  getStatus: async (eventId: number): Promise<QueueStatusResponse> => {
+    const response = await apiClient.get<QueueStatusResponse>(
+      `/queue/status/${eventId}`
+    );
     return response.data;
   },
 };

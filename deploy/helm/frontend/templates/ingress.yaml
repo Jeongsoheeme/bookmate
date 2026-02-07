@@ -1,0 +1,47 @@
+{{- if .Values.ingress.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: bookmate-ingress
+  namespace: {{ .Values.namespace }}
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: {{ .Values.ingress.host }}
+      http:
+        paths:
+          # /api/* → backend
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: bookmate-backend
+                port:
+                  number: {{ .Values.backend.port }}
+          # /uploads/* → backend (정적 파일)
+          - path: /uploads
+            pathType: Prefix
+            backend:
+              service:
+                name: bookmate-backend
+                port:
+                  number: {{ .Values.backend.port }}
+          # /admin/* → admin-frontend
+          - path: /admin
+            pathType: Prefix
+            backend:
+              service:
+                name: bookmate-admin-frontend
+                port:
+                  number: {{ .Values.adminFrontend.port }}
+          # 나머지 → frontend
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: bookmate-frontend
+                port:
+                  number: {{ .Values.frontend.port }}
+{{- end }}

@@ -9,6 +9,7 @@ interface BannerItem {
   date: string;
   imageUrl?: string;
   link?: string;
+  is_hot?: number; // 인기 이벤트 여부
 }
 
 interface BannerCarouselProps {
@@ -62,7 +63,7 @@ const BannerCarousel: React.FC<BannerCarouselProps> = ({ items }) => {
             {Array.from({ length: totalPages }).map((_, pageIndex) => {
               const pageItems = items.slice(
                 pageIndex * ITEMS_PER_PAGE,
-                (pageIndex + 1) * ITEMS_PER_PAGE
+                (pageIndex + 1) * ITEMS_PER_PAGE,
               );
               return (
                 <div
@@ -79,9 +80,14 @@ const BannerCarousel: React.FC<BannerCarouselProps> = ({ items }) => {
                         }rem) / ${ITEMS_PER_PAGE})`,
                       }}
                       onClick={() => {
-                        // eventId가 있으면 상세 페이지로 이동
+                        // eventId가 있으면 인기 이벤트 여부 확인 후 이동
                         if (item.eventId) {
-                          navigate(`/event/${item.eventId}`);
+                          // 인기 이벤트면 대기열 진입 페이지로 이동
+                          if (item.is_hot === 1) {
+                            navigate(`/queue/${item.eventId}`);
+                          } else {
+                            navigate(`/event/${item.eventId}`);
+                          }
                         } else if (item.link) {
                           if (item.link.startsWith("http")) {
                             window.open(item.link, "_blank");

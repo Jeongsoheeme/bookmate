@@ -1,0 +1,65 @@
+# ============================================
+# Bookmate Backend Chart - 기본값
+# ============================================
+
+# -- 글로벌 설정 --
+namespace: bookmate
+
+# -- Backend (FastAPI) --
+backend:
+  image: Jeongsohee/bookmate-backend
+  tag: latest
+  replicas: 1
+  port: 8001
+  env:
+    algorithm: "HS256"
+    accessTokenExpireMinutes: "30"
+    refreshTokenExpireDays: "7"
+    uploadDir: "uploads"
+    redisDb: "0"
+    seatLockTimeout: "120"
+    queueBatchSize: "50"
+    queueBatchInterval: "10"
+    queueTokenTtl: "600"
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+# -- PostgreSQL --
+postgres:
+  image: postgres:15
+  port: 5432
+  database: bookmate
+  username: admin
+  password: bookmate123
+  storage: 5Gi
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+# -- Redis --
+redis:
+  image: redis:7-alpine
+  port: 6379
+  storage: 1Gi
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      memory: 256Mi
+
+# -- Secrets --
+secrets:
+  secretKey: dev-secret-key-change-in-prod
+  openaiApiKey: ""
+  openaiModel: ""

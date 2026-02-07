@@ -10,6 +10,7 @@ import DeliverySelectionPage from "./pages/DeliverySelectionPage";
 import ProfileManagePage from "./pages/ProfileManagePage";
 import MyPageMain from "./pages/MyPageMain";
 import BookingDetailPage from "./pages/BookingDetailPage";
+import QueuePage from "./pages/QueuePage";
 import ProtectedRoute from "./components/ProtectedRoute";
 
 function App() {
@@ -23,6 +24,14 @@ function App() {
           element={
             <ProtectedRoute>
               <MainPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/queue/:eventId"
+          element={
+            <ProtectedRoute>
+              <QueuePage />
             </ProtectedRoute>
           }
         />

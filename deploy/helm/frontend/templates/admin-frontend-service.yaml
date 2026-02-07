@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: bookmate-admin-frontend
+  namespace: {{ .Values.namespace }}
+spec:
+  selector:
+    app: bookmate-admin-frontend
+  ports:
+    - port: {{ .Values.adminFrontend.port }}
+      targetPort: {{ .Values.adminFrontend.port }}
+  type: ClusterIP

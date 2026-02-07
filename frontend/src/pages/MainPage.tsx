@@ -37,12 +37,12 @@ const MainPage: React.FC = () => {
 
   // 선택한 카테고리에 맞는 이벤트 필터링
   const filteredEvents = events.filter(
-    (event) => event.genre === selectedCategory
+    (event) => event.genre === selectedCategory,
   );
 
   // 선택한 카테고리에 맞는 배너 필터링 (genre가 null이면 모든 탭에 표시)
   const filteredBanners = banners.filter(
-    (banner) => !banner.genre || banner.genre === selectedCategory
+    (banner) => !banner.genre || banner.genre === selectedCategory,
   );
 
   // 배너 데이터를 BannerCarousel 형식으로 변환
@@ -84,6 +84,7 @@ const MainPage: React.FC = () => {
       date: dateStr,
       imageUrl: getImageUrl(event?.poster_image),
       link: banner.link || undefined,
+      is_hot: event?.is_hot || 0, // 인기 이벤트 여부
     };
   });
 

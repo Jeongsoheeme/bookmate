@@ -1,0 +1,37 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: redis
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: redis
+  template:
+    metadata:
+      labels:
+        app: redis
+    spec:
+      containers:
+        - name: redis
+          image: {{ .Values.redis.image }}
+          command: ["redis-server", "--appendonly", "yes"]
+          ports:
+            - containerPort: {{ .Values.redis.port }}
+          volumeMounts:
+            - name: redis-data
+              mountPath: /data
+          resources:
+            requests:
+              cpu: {{ .Values.redis.resources.requests.cpu }}
+              memory: {{ .Values.redis.resources.requests.memory }}
+            limits:
+              cpu: {{ .Values.redis.resources.limits.cpu }}
+              memory: {{ .Values.redis.resources.limits.memory }}
+      volumes:
+        - name: redis-data
+          persistentVolumeClaim:
+            claimName: redis-pvc

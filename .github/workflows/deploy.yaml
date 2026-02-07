@@ -1,0 +1,234 @@
+# ============================================
+# GitHub Actions CI/CD 워크플로우
+# ============================================
+# 참고: 앱 레포(bookmate)에서 이미지 빌드 후, 배포 레포(bookmate-deploy)의
+#       Helm values 이미지 태그를 업데이트하는 패턴
+#
+# 워크플로우가 수행하는 작업:
+# 1. 코드 변경 감지 (main → prod, develop → dev)
+# 2. Docker 이미지 빌드 및 GHCR에 푸시
+# 3. 배포 레포의 Helm values 파일 이미지 태그 업데이트
+# 4. ArgoCD가 변경 감지 및 자동 배포
+# ============================================
+
+name: Build and Update Deployment
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+
+jobs:
+  # ============================================
+  # Backend: 테스트 → 이미지 빌드/푸시 → 배포 레포 태그 업데이트
+  # ============================================
+  build-and-deploy-backend:
+    name: Backend (Build & Deploy)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install dependencies
+        working-directory: ./backend
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Verify build
+        working-directory: ./backend
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          SECRET_KEY: ${{ secrets.SECRET_KEY }}
+          REDIS_HOST: ${{ secrets.REDIS_HOST }}
+          REDIS_PORT: ${{ secrets.REDIS_PORT }}
+        run: |
+          python -c "from app.main import app; print('✅ Backend 빌드 성공!')"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Determine environment and tag
+        id: vars
+        run: |
+          if [ "${{ github.ref }}" == "refs/heads/main" ]; then
+            echo "environment=prod" >> $GITHUB_OUTPUT
+            echo "tag=prod-${{ github.sha }}" >> $GITHUB_OUTPUT
+          else
+            echo "environment=dev" >> $GITHUB_OUTPUT
+            echo "tag=dev-${{ github.sha }}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Build and push backend image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/bookmate-backend:${{ steps.vars.outputs.tag }}
+            ghcr.io/${{ github.repository_owner }}/bookmate-backend:${{ steps.vars.outputs.environment }}-latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Checkout deployment repository
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository_owner }}/bookmate-deploy
+          token: ${{ secrets.DEPLOY_REPO_TOKEN }}
+          path: deploy
+
+      - name: Update image tag in deployment repo
+        run: |
+          cd deploy
+          mkdir -p $HOME/bin
+          wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O $HOME/bin/yq
+          chmod +x $HOME/bin/yq
+          export PATH=$HOME/bin:$PATH
+
+          ENV="${{ steps.vars.outputs.environment }}"
+          TAG="${{ steps.vars.outputs.tag }}"
+          IMAGE="ghcr.io/${{ github.repository_owner }}/bookmate-backend"
+
+          yq eval ".backend.image = \"${IMAGE}\" | .backend.tag = \"${TAG}\"" -i "helm/backend/values-${ENV}.yaml"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add "helm/backend/values-${ENV}.yaml"
+          git diff --staged --quiet || (git commit -m "Update backend image tag to ${TAG} for ${ENV}" && git push)
+
+  # ============================================
+  # Frontend + Admin Frontend: 테스트 → 이미지 빌드/푸시 → 배포 레포 태그 업데이트
+  # (동일 helm/frontend values 파일을 수정하므로 한 job에서 처리)
+  # ============================================
+  build-and-deploy-frontend:
+    name: Frontend & Admin (Build & Deploy)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Frontend - Install dependencies
+        working-directory: ./frontend
+        run: npm ci
+
+      - name: Frontend - Lint and type check
+        working-directory: ./frontend
+        run: |
+          npm run lint || echo "⚠️ Lint 오류가 있지만 계속 진행합니다."
+          npx tsc --noEmit || echo "⚠️ TypeScript 오류가 있지만 계속 진행합니다."
+
+      - name: Frontend - Build
+        working-directory: ./frontend
+        run: npm run build
+
+      - name: Admin Frontend - Install dependencies
+        working-directory: ./admin-frontend
+        run: npm ci
+
+      - name: Admin Frontend - Lint and type check
+        working-directory: ./admin-frontend
+        run: |
+          npm run lint || echo "⚠️ Lint 오류가 있지만 계속 진행합니다."
+          npx tsc --noEmit || echo "⚠️ TypeScript 오류가 있지만 계속 진행합니다."
+
+      - name: Admin Frontend - Build
+        working-directory: ./admin-frontend
+        run: npm run build
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Determine environment and tag
+        id: vars
+        run: |
+          if [ "${{ github.ref }}" == "refs/heads/main" ]; then
+            echo "environment=prod" >> $GITHUB_OUTPUT
+            echo "tag=prod-${{ github.sha }}" >> $GITHUB_OUTPUT
+          else
+            echo "environment=dev" >> $GITHUB_OUTPUT
+            echo "tag=dev-${{ github.sha }}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Build and push frontend image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./frontend
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/bookmate-frontend:${{ steps.vars.outputs.tag }}
+            ghcr.io/${{ github.repository_owner }}/bookmate-frontend:${{ steps.vars.outputs.environment }}-latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build and push admin-frontend image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./admin-frontend
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/bookmate-admin-frontend:${{ steps.vars.outputs.tag }}
+            ghcr.io/${{ github.repository_owner }}/bookmate-admin-frontend:${{ steps.vars.outputs.environment }}-latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Checkout deployment repository
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository_owner }}/bookmate-deploy
+          token: ${{ secrets.DEPLOY_REPO_TOKEN }}
+          path: deploy
+
+      - name: Update frontend & admin-frontend image tags in deployment repo
+        run: |
+          cd deploy
+          mkdir -p $HOME/bin
+          wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O $HOME/bin/yq
+          chmod +x $HOME/bin/yq
+          export PATH=$HOME/bin:$PATH
+
+          ENV="${{ steps.vars.outputs.environment }}"
+          TAG="${{ steps.vars.outputs.tag }}"
+          OWNER="${{ github.repository_owner }}"
+
+          yq eval ".frontend.image = \"ghcr.io/${OWNER}/bookmate-frontend\" | .frontend.tag = \"${TAG}\" | .adminFrontend.image = \"ghcr.io/${OWNER}/bookmate-admin-frontend\" | .adminFrontend.tag = \"${TAG}\"" -i "helm/frontend/values-${ENV}.yaml"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add "helm/frontend/values-${ENV}.yaml"
+          git diff --staged --quiet || (git commit -m "Update frontend & admin-frontend image tags to ${TAG} for ${ENV}" && git push)

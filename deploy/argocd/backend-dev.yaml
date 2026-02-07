@@ -1,0 +1,22 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: bookmate-backend-dev
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/Jeongsoheeme/bookmate.git
+    targetRevision: main
+    path: deploy/helm/backend
+    helm:
+      valueFiles:
+        - values.yaml
+        - values-dev.yaml
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: bookmate
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true

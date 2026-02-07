@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8001";
 
 // Admin 전용 API 클라이언트
 export const adminApiClient = axios.create({

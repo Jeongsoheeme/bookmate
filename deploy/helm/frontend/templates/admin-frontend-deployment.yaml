@@ -1,0 +1,29 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bookmate-admin-frontend
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: bookmate-admin-frontend
+spec:
+  replicas: {{ .Values.adminFrontend.replicas }}
+  selector:
+    matchLabels:
+      app: bookmate-admin-frontend
+  template:
+    metadata:
+      labels:
+        app: bookmate-admin-frontend
+    spec:
+      containers:
+        - name: admin-frontend
+          image: {{ .Values.adminFrontend.image }}:{{ .Values.adminFrontend.tag }}
+          ports:
+            - containerPort: {{ .Values.adminFrontend.port }}
+          resources:
+            requests:
+              cpu: {{ .Values.adminFrontend.resources.requests.cpu }}
+              memory: {{ .Values.adminFrontend.resources.requests.memory }}
+            limits:
+              cpu: {{ .Values.adminFrontend.resources.limits.cpu }}
+              memory: {{ .Values.adminFrontend.resources.limits.memory }}

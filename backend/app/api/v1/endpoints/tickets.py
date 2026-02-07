@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Header
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import select
 from typing import List, Optional
@@ -33,15 +33,40 @@ class TicketResponse(BaseModel):
 def get_event_tickets(
     event_id: int,
     schedule_id: int | None = None,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    x_queue_token: str | None = Header(None, alias="X-Queue-Token")
 ):
-    """이벤트의 티켓 목록 조회 (인증 불필요)
+    """이벤트의 티켓 목록 조회
+    인기 이벤트의 경우 대기열 토큰이 필요합니다.
     schedule_id가 제공되면 해당 회차의 티켓만 조회
     tickets 테이블에 데이터가 없으면 event_seat_grades를 기반으로 좌석을 생성"""
+    from app.api.v1.endpoints.queue import validate_queue_token
+
     # 이벤트와 venue 정보 확인
     event = db.query(Event).options(joinedload(Event.venue)).filter(Event.id == event_id).first()
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
+
+    # 인기 이벤트인 경우 대기열 토큰 검증
+    if event.is_hot or getattr(event, 'queue_enabled', False):
+        if not x_queue_token:
+            raise HTTPException(
+                status_code=403,
+                detail={
+                    "error": "대기열 토큰 필요",
+                    "message": "인기 이벤트는 대기열을 통과해야 합니다."
+                }
+            )
+
+        if not validate_queue_token(event_id, current_user.id, x_queue_token):
+            raise HTTPException(
+                status_code=403,
+                detail={
+                    "error": "대기열 토큰 무효",
+                    "message": "대기열 토큰이 만료되었거나 유효하지 않습니다."
+                }
+            )
     
     # schedule_id가 제공된 경우 해당 스케줄 확인
     if schedule_id:
@@ -297,6 +322,20 @@ class CreateBookingRequest(BaseModel):
     delivery_info: Optional[dict] = None
 
 
+class SeatInfo(BaseModel):
+    row: str
+    number: int
+
+class SeatLockRequest(BaseModel):
+    event_id: int
+    schedule_id: Optional[int] = None
+    seats: List[SeatInfo]
+
+class SeatLockResponse(BaseModel):
+    success: bool
+    message: str
+    locked_seats: List[dict] = []
+
 class BookingResponse(BaseModel):
     id: int
     user_id: int
@@ -309,11 +348,113 @@ class BookingResponse(BaseModel):
         from_attributes = True
 
 
+@router.post("/seats/lock", response_model=SeatLockResponse)
+def lock_seats(
+    request: SeatLockRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+    x_queue_token: str | None = Header(None, alias="X-Queue-Token")
+):
+    """
+    좌석 선택 완료 시점에 미리 좌석을 잠그는 API
+    예매 정보 입력 전에 좌석을 확보하여 다른 사용자가 선택하지 못하도록 함
+    """
+    from app.api.v1.endpoints.queue import validate_queue_token
+
+    # 이벤트 확인 및 대기열 토큰 검증
+    event = db.query(Event).filter(Event.id == request.event_id).first()
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found")
+
+    # 인기 이벤트인 경우 대기열 토큰 검증
+    if event.is_hot or getattr(event, 'queue_enabled', False):
+        if not x_queue_token:
+            raise HTTPException(
+                status_code=403,
+                detail={
+                    "error": "대기열 토큰 필요",
+                    "message": "인기 이벤트는 대기열을 통과해야 합니다."
+                }
+            )
+
+        if not validate_queue_token(request.event_id, current_user.id, x_queue_token):
+            raise HTTPException(
+                status_code=403,
+                detail={
+                    "error": "대기열 토큰 무효",
+                    "message": "대기열 토큰이 만료되었거나 유효하지 않습니다."
+                }
+            )
+    
+    locked_tickets = []
+    
+    try:
+        for seat_info in request.seats:
+            # 티켓이 이미 존재하는지 확인
+            ticket_query = db.query(Ticket).filter(
+                Ticket.event_id == request.event_id,
+                Ticket.seat_row == seat_info.row,
+                Ticket.seat_number == seat_info.number
+            )
+            if request.schedule_id:
+                ticket_query = ticket_query.filter(Ticket.schedule_id == request.schedule_id)
+            existing_ticket = ticket_query.first()
+            
+            # 티켓 ID 결정
+            if existing_ticket:
+                ticket_id = existing_ticket.id
+            else:
+                # 임시 ID 생성 (일관성을 위해 절대값 사용)
+                seat_key = f"{request.event_id}:{request.schedule_id or 0}:{seat_info.row}:{seat_info.number}"
+                ticket_id = -abs(hash(seat_key)) % 1000000
+            
+            # Redis LOCK 시도
+            lock_acquired = redis_service.try_lock_seat(ticket_id, user_id=current_user.id)
+            
+            # LOCK 실패 시, 같은 사용자가 이미 LOCK을 가지고 있는지 확인
+            if not lock_acquired:
+                lock_user_id = redis_service.get_lock_user_id(ticket_id)
+                if lock_user_id is not None and lock_user_id == current_user.id:
+                    lock_acquired = True
+            
+            if lock_acquired:
+                locked_tickets.append({
+                    "row": seat_info.row,
+                    "number": seat_info.number,
+                    "ticket_id": ticket_id
+                })
+            else:
+                # 하나라도 실패하면 모든 LOCK 해제
+                for locked in locked_tickets:
+                    redis_service.unlock_seat(locked["ticket_id"])
+                return SeatLockResponse(
+                    success=False,
+                    message=f"좌석 {seat_info.row}-{seat_info.number}번이 다른 사용자에 의해 처리 중입니다.",
+                    locked_seats=[]
+                )
+        
+        return SeatLockResponse(
+            success=True,
+            message=f"{len(locked_tickets)}개의 좌석이 잠금되었습니다.",
+            locked_seats=locked_tickets
+        )
+    except Exception as e:
+        # 오류 발생 시 모든 LOCK 해제
+        for locked in locked_tickets:
+            redis_service.unlock_seat(locked["ticket_id"])
+        return SeatLockResponse(
+            success=False,
+            message=f"좌석 잠금 중 오류가 발생했습니다: {str(e)}",
+            locked_seats=[]
+        )
+
+
 @router.post("/bookings", response_model=List[BookingResponse])
 def create_bookings(
     request: CreateBookingRequest,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    x_queue_token: str | None = Header(None, alias="X-Queue-Token")
 ):
     """
     선택한 좌석에 대해 티켓을 생성하고 booking을 생성
@@ -322,10 +463,32 @@ def create_bookings(
     2. DB 레벨 LOCK (최종 보장)
     3. 트랜잭션으로 원자성 보장
     """
+    from app.api.v1.endpoints.queue import validate_queue_token
+
     # 이벤트 확인
     event = db.query(Event).filter(Event.id == request.event_id).first()
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
+
+    # 인기 이벤트인 경우 대기열 토큰 검증
+    if event.is_hot or getattr(event, 'queue_enabled', False):
+        if not x_queue_token:
+            raise HTTPException(
+                status_code=403,
+                detail={
+                    "error": "대기열 토큰 필요",
+                    "message": "인기 이벤트는 대기열을 통과해야 합니다."
+                }
+            )
+
+        if not validate_queue_token(request.event_id, current_user.id, x_queue_token):
+            raise HTTPException(
+                status_code=403,
+                detail={
+                    "error": "대기열 토큰 무효",
+                    "message": "대기열 토큰이 만료되었거나 유효하지 않습니다."
+                }
+            )
     
     # schedule_id가 제공된 경우 해당 스케줄 확인
     if request.schedule_id:
@@ -353,20 +516,38 @@ def create_bookings(
             existing_ticket = ticket_query.first()
             
             # 티켓이 없으면 임시 ID 생성 (나중에 실제 생성)
+            # 일관성을 위해 문자열을 정규화하고 절대값 사용
             if existing_ticket:
                 ticket_id = existing_ticket.id
             else:
-                # 임시 ID: 음수로 구분 (실제 DB ID가 아니므로)
-                ticket_id = -(hash(f"{request.event_id}:{request.schedule_id}:{seat_info.row}:{seat_info.number}") % 1000000)
+                # 임시 ID: 일관성을 위해 정규화된 문자열 사용
+                seat_key = f"{request.event_id}:{request.schedule_id or 0}:{seat_info.row}:{seat_info.number}"
+                # Python hash는 실행마다 다를 수 있으므로 절대값 사용
+                ticket_id = -abs(hash(seat_key)) % 1000000
             
             # Redis LOCK 시도
-            if not redis_service.try_lock_seat(ticket_id):
+            # 먼저 기존 LOCK을 확인
+            lock_user_id = redis_service.get_lock_user_id(ticket_id)
+            
+            if lock_user_id is not None:
+                if lock_user_id == current_user.id:
+                    # 같은 사용자가 이미 LOCK을 가지고 있으면 재사용
+                    lock_acquired = True
+                else:
+                    # 다른 사용자가 LOCK을 가지고 있음
+                    # 타임아웃 대기 없이 바로 실패 처리
+                    lock_acquired = False
+            else:
+                # LOCK이 없으면 새로 획득 시도
+                lock_acquired = redis_service.try_lock_seat(ticket_id, user_id=current_user.id)
+            
+            if not lock_acquired:
                 # LOCK 실패 시 이미 LOCK한 것들 해제
                 for locked_id in locked_tickets:
                     redis_service.unlock_seat(locked_id)
                 raise HTTPException(
                     status_code=409,
-                    detail=f"Seat {seat_info.row}-{seat_info.number} is currently being processed by another user. Please try again."
+                    detail=f"좌석 {seat_info.row}-{seat_info.number}번이 다른 사용자에 의해 처리 중입니다. 다시 시도하시거나 다른 좌석을 선택해주세요."
                 )
             
             locked_tickets.append(ticket_id)
@@ -467,13 +648,19 @@ def create_bookings(
         
     except HTTPException:
         # HTTPException은 그대로 전파
-        db.rollback()
+        # HTTPException은 비즈니스 로직 예외이므로 rollback은 FastAPI의 의존성 주입 시스템이 자동으로 처리
+        # 여기서는 LOCK만 해제하고 예외를 전파
         # LOCK 해제
         for locked_id in locked_tickets:
             redis_service.unlock_seat(locked_id)
         raise
     except Exception as e:
-        db.rollback()
+        # 일반 예외는 DB 오류일 수 있으므로 rollback 시도
+        try:
+            db.rollback()
+        except Exception:
+            # rollback이 이미 진행되었거나 필요 없는 경우 무시
+            pass
         # LOCK 해제
         for locked_id in locked_tickets:
             redis_service.unlock_seat(locked_id)

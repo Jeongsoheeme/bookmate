@@ -6,13 +6,16 @@ import messagesImage from "../assets/messages.png";
 import notificationImage from "../assets/notification-status.png";
 import { authApi } from "../services/api";
 import type { User } from "../services/api";
+import AISearchPanel from "./AISearchModal";
 
 const Header: React.FC = () => {
   const navigate = useNavigate();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [isAISearchPanelOpen, setIsAISearchPanelOpen] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
+  const aiSearchButtonRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -86,9 +89,21 @@ const Header: React.FC = () => {
               </div>
             </div>
             <div className="flex items-center gap-4">
-              <button className="p-2 hover:bg-gray-100 rounded-full transition-colors">
-                <img src={messagesImage} alt="Messages" className="h-6 w-6" />
-              </button>
+              <div className="relative">
+                <button
+                  ref={aiSearchButtonRef}
+                  onClick={() => setIsAISearchPanelOpen(!isAISearchPanelOpen)}
+                  className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                  title="AI 콘서트 검색"
+                >
+                  <img src={messagesImage} alt="Messages" className="h-6 w-6" />
+                </button>
+                <AISearchPanel
+                  isOpen={isAISearchPanelOpen}
+                  onClose={() => setIsAISearchPanelOpen(false)}
+                  buttonRef={aiSearchButtonRef}
+                />
+              </div>
               <button className="p-2 hover:bg-gray-100 rounded-full transition-colors">
                 <img
                   src={notificationImage}

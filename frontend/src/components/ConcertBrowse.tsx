@@ -98,6 +98,7 @@ const ConcertBrowse: React.FC<ConcertBrowseProps> = ({
         dateEnd: dateEndStr || undefined,
         imageUrl: getImageUrl(event.poster_image),
         isExclusive: true, // 필요시 이벤트 데이터에 추가
+        is_hot: event.is_hot || 0, // 인기 이벤트 여부
       };
     });
   }, [events, selectedGenre]);
@@ -141,7 +142,15 @@ const ConcertBrowse: React.FC<ConcertBrowseProps> = ({
             {filteredConcerts.map((concert) => (
               <div
                 key={concert.id}
-                onClick={() => navigate(`/event/${concert.id}`)}
+                onClick={() => {
+                  // 인기 이벤트인지 확인
+                  const isHot = concert.is_hot === 1;
+                  if (isHot) {
+                    navigate(`/queue/${concert.id}`);
+                  } else {
+                    navigate(`/event/${concert.id}`);
+                  }
+                }}
                 className="bg-white rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow cursor-pointer group"
               >
                 <div className="w-full aspect-[3/4] bg-gray-200 relative overflow-hidden">

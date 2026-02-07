@@ -4,6 +4,7 @@ from fastapi.staticfiles import StaticFiles
 from app.api.v1.router import api_router
 from app.api.admin.router import admin_router
 from app.core.config import settings
+from app.middleware.rate_limit_middleware import RateLimitMiddleware
 import os
 
 app = FastAPI(
@@ -22,6 +23,9 @@ app.add_middleware(
   allow_methods=["*"],
   allow_headers=["*"],
 )
+
+# Rate Limiting 미들웨어 추가 (메인 페이지 보호용)
+app.add_middleware(RateLimitMiddleware)
 
 # 업로드 디렉토리 생성
 os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
