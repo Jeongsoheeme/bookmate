@@ -5,7 +5,7 @@
 
 namespace: bookmate-prod
 backend:
-  tag: prod-c91c685a889ca08e1b938ece299dafb02de3efab
+  tag: prod-c0e3ac22c695104b5ffd1916252e08a838295ccc
   replicas: 2
   resources:
     requests:
