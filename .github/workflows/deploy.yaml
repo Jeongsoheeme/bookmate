@@ -108,11 +108,11 @@ jobs:
           TAG="${{ steps.vars.outputs.tag }}"
           IMAGE="ghcr.io/${{ steps.vars.outputs.owner_lower }}/bookmate-backend"
 
-          yq eval ".backend.image = \"${IMAGE}\" | .backend.tag = \"${TAG}\"" -i "helm/backend/values-${ENV}.yaml"
+          yq eval ".backend.image = \"${IMAGE}\" | .backend.tag = \"${TAG}\"" -i "deploy/helm/backend/values-${ENV}.yaml"
 
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add "helm/backend/values-${ENV}.yaml"
+          git add "deploy/helm/backend/values-${ENV}.yaml"
           git diff --staged --quiet || (git commit -m "Update backend image tag to ${TAG} for ${ENV}" && git push)
 
   # ============================================
@@ -228,9 +228,9 @@ jobs:
           TAG="${{ steps.vars.outputs.tag }}"
           OWNER="${{ steps.vars.outputs.owner_lower }}"
 
-          yq eval ".frontend.image = \"ghcr.io/${OWNER}/bookmate-frontend\" | .frontend.tag = \"${TAG}\" | .adminFrontend.image = \"ghcr.io/${OWNER}/bookmate-admin-frontend\" | .adminFrontend.tag = \"${TAG}\"" -i "helm/frontend/values-${ENV}.yaml"
+          yq eval ".frontend.image = \"ghcr.io/${OWNER}/bookmate-frontend\" | .frontend.tag = \"${TAG}\" | .adminFrontend.image = \"ghcr.io/${OWNER}/bookmate-admin-frontend\" | .adminFrontend.tag = \"${TAG}\"" -i "deploy/helm/frontend/values-${ENV}.yaml"
 
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add "helm/frontend/values-${ENV}.yaml"
+          git add "deploy/helm/frontend/values-${ENV}.yaml"
           git diff --staged --quiet || (git commit -m "Update frontend & admin-frontend image tags to ${TAG} for ${ENV}" && git push)
