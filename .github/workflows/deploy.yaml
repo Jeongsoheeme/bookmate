@@ -83,15 +83,15 @@ jobs:
           context: ./backend
           push: true
           tags: |
-            ghcr.io/${{ github.repository_owner }}/bookmate-backend:${{ steps.vars.outputs.tag }}
-            ghcr.io/${{ github.repository_owner }}/bookmate-backend:${{ steps.vars.outputs.environment }}-latest
+            ghcr.io/${{ github.repository_owner }}/bookmate:${{ steps.vars.outputs.tag }}
+            ghcr.io/${{ github.repository_owner }}/bookmate:${{ steps.vars.outputs.environment }}-latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
       - name: Checkout deployment repository
         uses: actions/checkout@v4
         with:
-          repository: ${{ github.repository_owner }}/bookmate-deploy
+          repository: ${{ github.repository_owner }}/bookmate
           token: ${{ secrets.DEPLOY_REPO_TOKEN }}
           path: deploy
 
@@ -105,7 +105,7 @@ jobs:
 
           ENV="${{ steps.vars.outputs.environment }}"
           TAG="${{ steps.vars.outputs.tag }}"
-          IMAGE="ghcr.io/${{ github.repository_owner }}/bookmate-backend"
+          IMAGE="ghcr.io/${{ github.repository_owner }}/bookmate"
 
           yq eval ".backend.image = \"${IMAGE}\" | .backend.tag = \"${TAG}\"" -i "helm/backend/values-${ENV}.yaml"
 
@@ -191,8 +191,8 @@ jobs:
           context: ./frontend
           push: true
           tags: |
-            ghcr.io/${{ github.repository_owner }}/bookmate-frontend:${{ steps.vars.outputs.tag }}
-            ghcr.io/${{ github.repository_owner }}/bookmate-frontend:${{ steps.vars.outputs.environment }}-latest
+            ghcr.io/${{ github.repository_owner }}/bookmate:${{ steps.vars.outputs.tag }}
+            ghcr.io/${{ github.repository_owner }}/bookmate:${{ steps.vars.outputs.environment }}-latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -202,15 +202,15 @@ jobs:
           context: ./admin-frontend
           push: true
           tags: |
-            ghcr.io/${{ github.repository_owner }}/bookmate-admin-frontend:${{ steps.vars.outputs.tag }}
-            ghcr.io/${{ github.repository_owner }}/bookmate-admin-frontend:${{ steps.vars.outputs.environment }}-latest
+            ghcr.io/${{ github.repository_owner }}/bookmate:${{ steps.vars.outputs.tag }}
+            ghcr.io/${{ github.repository_owner }}/bookmate:${{ steps.vars.outputs.environment }}-latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
       - name: Checkout deployment repository
         uses: actions/checkout@v4
         with:
-          repository: ${{ github.repository_owner }}/bookmate-deploy
+          repository: ${{ github.repository_owner }}/bookmate
           token: ${{ secrets.DEPLOY_REPO_TOKEN }}
           path: deploy
 
@@ -226,7 +226,7 @@ jobs:
           TAG="${{ steps.vars.outputs.tag }}"
           OWNER="${{ github.repository_owner }}"
 
-          yq eval ".frontend.image = \"ghcr.io/${OWNER}/bookmate-frontend\" | .frontend.tag = \"${TAG}\" | .adminFrontend.image = \"ghcr.io/${OWNER}/bookmate-admin-frontend\" | .adminFrontend.tag = \"${TAG}\"" -i "helm/frontend/values-${ENV}.yaml"
+          yq eval ".frontend.image = \"ghcr.io/${OWNER}/bookmate\" | .frontend.tag = \"${TAG}\" | .adminFrontend.image = \"ghcr.io/${OWNER}/bookmate\" | .adminFrontend.tag = \"${TAG}\"" -i "helm/frontend/values-${ENV}.yaml"
 
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
