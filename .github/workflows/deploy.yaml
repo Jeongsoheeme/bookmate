@@ -116,7 +116,7 @@ jobs:
           yq eval ".backend.image = \"${IMAGE}\" | .backend.tag = \"${TAG}\"" -i "deploy/helm/backend/values-${ENV}.yaml"
 
           git add "deploy/helm/backend/values-${ENV}.yaml"
-          git diff --staged --quiet || (git commit -m "Update backend image tag to ${TAG} for ${ENV}" && git push)
+          git diff --staged --quiet || (git commit -m "[skip ci] Update backend image tag to ${TAG} for ${ENV}" && git push)
 
   # ============================================
   # Frontend + Admin Frontend: 테스트 → 이미지 빌드/푸시 → 배포 레포 태그 업데이트
@@ -239,4 +239,4 @@ jobs:
           yq eval ".frontend.image = \"ghcr.io/${OWNER}/bookmate-frontend\" | .frontend.tag = \"${TAG}\" | .adminFrontend.image = \"ghcr.io/${OWNER}/bookmate-admin-frontend\" | .adminFrontend.tag = \"${TAG}\"" -i "deploy/helm/frontend/values-${ENV}.yaml"
 
           git add "deploy/helm/frontend/values-${ENV}.yaml"
-          git diff --staged --quiet || (git commit -m "Update frontend & admin-frontend image tags to ${TAG} for ${ENV}" && git push)
+          git diff --staged --quiet || (git commit -m "[skip ci] Update frontend & admin-frontend image tags to ${TAG} for ${ENV}" && git push)
