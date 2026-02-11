@@ -60,6 +60,6 @@ redis:
 
 # -- Secrets --
 secrets:
-  secretKey: dev-secret-key-change-in-prod
+  secretKey: ""
   openaiApiKey: ""
   openaiModel: ""

@@ -64,7 +64,7 @@ jobs:
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          password: ${{ secrets.DEPLOY_REPO_TOKEN }}
 
       - name: Determine environment and tag
         id: vars
@@ -176,7 +176,7 @@ jobs:
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          password: ${{ secrets.DEPLOY_REPO_TOKEN }}
 
       - name: Determine environment and tag
         id: vars
