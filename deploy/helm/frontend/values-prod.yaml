@@ -4,15 +4,14 @@
 # 사용법: helm install bookmate-frontend . -f values.yaml -f values-prod.yaml
 
 namespace: bookmate-prod
-
 frontend:
-  tag: latest
+  tag: prod-f83abb8d5179f0914095e8e4722362669964b85a
   replicas: 2
-
+  image: ghcr.io/jeongsoheeme/bookmate-frontend
 adminFrontend:
-  tag: latest
+  tag: prod-f83abb8d5179f0914095e8e4722362669964b85a
   replicas: 1
-
+  image: ghcr.io/jeongsoheeme/bookmate-admin-frontend
 ingress:
   enabled: true
   host: bookmate.example.com
