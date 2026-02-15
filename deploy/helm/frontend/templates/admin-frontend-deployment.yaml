@@ -15,6 +15,8 @@ spec:
       labels:
         app: bookmate-admin-frontend
     spec:
+      imagePullSecrets:
+        - name: ghcr-secret
       containers:
         - name: admin-frontend
           image: {{ .Values.adminFrontend.image }}:{{ .Values.adminFrontend.tag }}
