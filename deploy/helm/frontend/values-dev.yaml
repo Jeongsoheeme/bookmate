@@ -6,9 +6,13 @@
 namespace: bookmate
 
 frontend:
+  image: ghcr.io/jeongsoheeme/bookmate-frontend
+  tag: prod-b83136c960b6740e781ddc62dc51463e913ea13d
   replicas: 1
 
 adminFrontend:
+  image: ghcr.io/jeongsoheeme/bookmate-admin-frontend
+  tag: prod-b83136c960b6740e781ddc62dc51463e913ea13d
   replicas: 1
 
 ingress:

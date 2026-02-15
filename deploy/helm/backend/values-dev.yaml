@@ -6,6 +6,8 @@
 namespace: bookmate
 
 backend:
+  image: ghcr.io/jeongsoheeme/bookmate-backend
+  tag: prod-b83136c960b6740e781ddc62dc51463e913ea13d
   replicas: 1
   resources:
     requests:
