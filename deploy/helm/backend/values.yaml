@@ -7,7 +7,7 @@ namespace: bookmate
 
 # -- Backend (FastAPI) --
 backend:
-  image: Jeongsohee/bookmate-backend
+  image: jeongsohee/bookmate-backend
   tag: latest
   replicas: 1
   port: 8001
